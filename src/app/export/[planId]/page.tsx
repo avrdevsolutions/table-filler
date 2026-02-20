@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import ScheduleTable from '@/components/ScheduleTable';
 import type { Employee, MonthPlan, Cell } from '@/types';
 import ExportButton from './ExportButton';
+import ScaleWrapper from './ScaleWrapper';
 
 export default async function ExportPage({ params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
@@ -14,7 +15,7 @@ export default async function ExportPage({ params }: { params: Promise<{ planId:
 
   const employeeIds: string[] = JSON.parse(plan.employeeIds || '[]');
   const employeesRaw = await prisma.employee.findMany({ where: { id: { in: employeeIds } } });
-  
+
   const employees: Employee[] = employeesRaw.map(e => ({
     id: e.id,
     fullName: e.fullName,
@@ -46,12 +47,15 @@ export default async function ExportPage({ params }: { params: Promise<{ planId:
   return (
     <div>
       <div className="print:hidden p-4 bg-gray-100 flex gap-3 items-center">
-        <span className="text-sm text-gray-600">Pagina de export — apăsați butonul pentru a descărca PNG</span>
+        <span className="text-sm text-gray-600">
+          Previzualizare export (1920×1080) — apăsați butonul pentru a descărca PNG
+        </span>
         <ExportButton />
       </div>
-      <div id="export-root" style={{ width: 1920, height: 1080 }}>
+      {/* ScaleWrapper resizes the preview to fit the viewport; html2canvas captures at full 1920×1080 */}
+      <ScaleWrapper>
         <ScheduleTable plan={planData} employees={employees} />
-      </div>
+      </ScaleWrapper>
     </div>
   );
 }

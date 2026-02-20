@@ -10,7 +10,25 @@ export default function ExportButton() {
       const html2canvas = (await import('html2canvas')).default;
       const el = document.getElementById('export-root');
       if (!el) return;
-      const canvas = await html2canvas(el, { width: 1920, height: 1080, scale: 1, useCORS: true });
+
+      // Temporarily remove CSS transform so html2canvas captures the full 1920×1080
+      const prevTransform = el.style.transform;
+      el.style.transform = 'none';
+      // Two rAF ticks to let the browser repaint before capturing
+      await new Promise(r => requestAnimationFrame(r));
+      await new Promise(r => requestAnimationFrame(r));
+
+      const canvas = await html2canvas(el, {
+        width: 1920,
+        height: 1080,
+        scale: 1,
+        useCORS: true,
+        logging: false,
+      });
+
+      // Restore visual scale
+      el.style.transform = prevTransform;
+
       const link = document.createElement('a');
       link.download = 'pontaj.png';
       link.href = canvas.toDataURL('image/png');

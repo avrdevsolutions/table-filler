@@ -25,10 +25,28 @@ export default function DashboardPage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetch('/api/employees').then(r => r.json()).then(setEmployees).catch(() => {
-        alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.');
-      });
+    if (status !== 'authenticated') return;
+
+    // Load all employees
+    fetch('/api/employees').then(r => r.json()).then(setEmployees).catch(() => {
+      alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.');
+    });
+
+    // Auto-restore last opened plan
+    try {
+      const saved = localStorage.getItem('lastPlan');
+      if (saved) {
+        const { planId, month: m, year: y } = JSON.parse(saved);
+        setMonth(m);
+        setYear(y);
+        setLoading(true);
+        fetch(`/api/month-plans/${planId}`)
+          .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
+          .then(full => { setPlan(full); setLoading(false); })
+          .catch(() => { localStorage.removeItem('lastPlan'); setLoading(false); });
+      }
+    } catch {
+      // localStorage unavailable or corrupted — ignore
     }
   }, [status]);
 
@@ -44,6 +62,7 @@ export default function DashboardPage() {
       const fullRes = await fetch(`/api/month-plans/${p.id}`);
       const full = await fullRes.json();
       setPlan(full);
+      try { localStorage.setItem('lastPlan', JSON.stringify({ planId: full.id, month, year })); } catch {}
     } catch (e) {
       console.error(e);
     }
