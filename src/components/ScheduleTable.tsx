@@ -5,9 +5,10 @@ interface Props {
   plan: MonthPlan;
   employees: Employee[];
   locationName?: string;
+  businessName?: string;
 }
 
-export default function ScheduleTable({ plan, employees, locationName }: Props) {
+export default function ScheduleTable({ plan, employees, locationName, businessName }: Props) {
   const { month, year } = plan;
   const days = getDaysInMonth(year, month);
   const daysArr = Array.from({ length: days }, (_, i) => i + 1);
@@ -70,6 +71,11 @@ export default function ScheduleTable({ plan, employees, locationName }: Props) 
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 8,
       }}>
+        {businessName && (
+          <div style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 2, color: '#1e3a8a' }}>
+            {businessName}
+          </div>
+        )}
         <div style={{ fontSize: 20, fontWeight: 'bold', letterSpacing: 2 }}>
           PLANIFICAREA SERVICIILOR
         </div>

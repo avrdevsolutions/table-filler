@@ -11,14 +11,13 @@ interface Props {
   onCellsChange: (employeeId: string, updates: Record<number, string>) => void;
   onEmployeeUpdate: (id: string, data: Partial<Employee>) => void;
   onEmployeeReorder: (ids: string[]) => void;
-  onEmployeeRemove: (id: string) => void;
 }
 
 type PopupMode = 'ZL' | 'CO' | 'X';
 interface ActivePopup { employeeId: string; mode: PopupMode; }
 interface ActiveDemisie { employeeId: string; }
 
-export default function ScheduleGrid({ plan, employees, onCellsChange, onEmployeeUpdate, onEmployeeReorder, onEmployeeRemove }: Props) {
+export default function ScheduleGrid({ plan, employees, onCellsChange, onEmployeeUpdate, onEmployeeReorder }: Props) {
   const { month, year } = plan;
   const days = getDaysInMonth(year, month);
   const daysArr = Array.from({ length: days }, (_, i) => i + 1);
@@ -100,7 +99,6 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                       <button onClick={() => setDemisieDialog({ employeeId: emp.id })} className="bg-orange-100 hover:bg-orange-200 text-orange-800 px-1 py-0.5 rounded text-[10px] font-medium">D</button>
                       <button onClick={() => moveEmployee(idx, -1)} disabled={idx === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-20 px-0.5">↑</button>
                       <button onClick={() => moveEmployee(idx, 1)} disabled={idx === orderedEmployees.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-20 px-0.5">↓</button>
-                      <button onClick={() => onEmployeeRemove(emp.id)} className="text-red-300 hover:text-red-600 px-0.5 text-xs">✕</button>
                     </div>
                   </td>
                   {daysArr.map(d => {
@@ -174,6 +172,23 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
           currentDate={demisieEmployee.terminationDate}
           onConfirm={date => {
             onEmployeeUpdate(demisieEmployee.id, { terminationDate: date });
+            // Clear shift cells that fall within the demisie period
+            if (date) {
+              const newTermDate = new Date(date);
+              const tYear = newTermDate.getFullYear();
+              const tMonth = newTermDate.getMonth() + 1;
+              const startDay = (tYear === year && tMonth === month) ? newTermDate.getDate() : 1;
+              const shouldFill = tYear < year || (tYear === year && tMonth < month) || (tYear === year && tMonth === month);
+              if (shouldFill) {
+                const clearUpdates: Record<number, string> = {};
+                for (let d = startDay; d <= days; d++) {
+                  clearUpdates[d] = '';
+                }
+                if (Object.keys(clearUpdates).length > 0) {
+                  onCellsChange(demisieEmployee.id, clearUpdates);
+                }
+              }
+            }
             setDemisieDialog(null);
           }}
           onClose={() => setDemisieDialog(null)}

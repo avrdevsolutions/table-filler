@@ -17,7 +17,7 @@ export default function LoginPage() {
     setError('');
     const res = await signIn('credentials', { email, password, redirect: false });
     setLoading(false);
-    if (res?.ok) router.push('/dashboard');
+    if (res?.ok) router.push('/businesses');
     else setError('Email sau parolă incorectă.');
   }
 

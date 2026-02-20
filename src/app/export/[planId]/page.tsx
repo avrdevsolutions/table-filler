@@ -1,4 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import ScheduleTable from '@/components/ScheduleTable';
 import type { Employee, MonthPlan, Cell } from '@/types';
@@ -7,11 +9,19 @@ import ScaleWrapper from './ScaleWrapper';
 
 export default async function ExportPage({ params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect('/login');
+  const userId = (session.user as { id: string }).id;
+
   const plan = await prisma.monthPlan.findUnique({
     where: { id: planId },
-    include: { cells: true },
+    include: { cells: true, business: true },
   });
   if (!plan) notFound();
+
+  // Authorization: plan must belong to the logged-in user
+  if (plan.userId !== userId && plan.business?.ownerUserId !== userId) notFound();
 
   const employeeIds: string[] = JSON.parse(plan.employeeIds || '[]');
   const employeesRaw = await prisma.employee.findMany({ where: { id: { in: employeeIds } } });
@@ -22,6 +32,7 @@ export default async function ExportPage({ params }: { params: Promise<{ planId:
     active: e.active,
     terminationDate: e.terminationDate ?? null,
     userId: e.userId,
+    businessId: e.businessId ?? null,
     createdAt: e.createdAt.toISOString(),
     updatedAt: e.updatedAt.toISOString(),
   }));
@@ -32,6 +43,7 @@ export default async function ExportPage({ params }: { params: Promise<{ planId:
     year: plan.year,
     locationName: plan.locationName,
     userId: plan.userId,
+    businessId: plan.businessId ?? null,
     employeeIds: plan.employeeIds,
     cells: plan.cells.map((c): Cell => ({
       id: c.id,
@@ -54,7 +66,7 @@ export default async function ExportPage({ params }: { params: Promise<{ planId:
       </div>
       {/* ScaleWrapper resizes the preview to fit the viewport; html2canvas captures at full 1920×1080 */}
       <ScaleWrapper>
-        <ScheduleTable plan={planData} employees={employees} />
+        <ScheduleTable plan={planData} employees={employees} businessName={plan.business?.name} />
       </ScaleWrapper>
     </div>
   );

@@ -1,9 +1,19 @@
+export interface Business {
+  id: string;
+  ownerUserId: string;
+  name: string;
+  locationName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Employee {
   id: string;
   fullName: string;
   active: boolean;
   terminationDate?: string | null;
   userId: string;
+  businessId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +32,7 @@ export interface MonthPlan {
   year: number;
   locationName: string;
   userId: string;
+  businessId?: string | null;
   employeeIds: string; // JSON string
   cells: Cell[];
   createdAt: string;
