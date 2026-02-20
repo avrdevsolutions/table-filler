@@ -30,12 +30,20 @@ export async function POST(req: Request) {
     // Check uniqueness by business
     const existing = await prisma.monthPlan.findFirst({ where: { businessId, month, year } });
     if (existing) return NextResponse.json(existing);
-    // Auto-include all active employees for this business
+    // Auto-include employees active during this plan month
+    const planMonthEnd = new Date(year, month, 0, 23, 59, 59, 999); // last moment of the plan month (day 0 of next month = last day of plan month)
     const activeEmployees = await prisma.employee.findMany({
-      where: { businessId, active: true },
+      where: { businessId, active: true, createdAt: { lte: planMonthEnd } },
       orderBy: { createdAt: 'asc' },
     });
-    const employeeIds = JSON.stringify(activeEmployees.map(e => e.id));
+    const relevantEmployees = activeEmployees.filter(e => {
+      if (!e.terminationDate) return true;
+      const term = new Date(e.terminationDate);
+      const termYear = term.getFullYear();
+      const termMonth = term.getMonth() + 1;
+      return termYear > year || (termYear === year && termMonth >= month);
+    });
+    const employeeIds = JSON.stringify(relevantEmployees.map(e => e.id));
     const plan = await prisma.monthPlan.create({
       data: { month, year, userId, businessId, employeeIds, locationName: biz.locationName },
     });

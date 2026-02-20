@@ -6,11 +6,9 @@ interface Props {
   year: number;
   onMonthChange: (m: number) => void;
   onYearChange: (y: number) => void;
-  onLoad: () => void;
-  loading: boolean;
 }
 
-export default function MonthSelector({ month, year, onMonthChange, onYearChange, onLoad, loading }: Props) {
+export default function MonthSelector({ month, year, onMonthChange, onYearChange }: Props) {
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -30,12 +28,6 @@ export default function MonthSelector({ month, year, onMonthChange, onYearChange
       >
         {years.map(y => <option key={y} value={y}>{y}</option>)}
       </select>
-      <button
-        onClick={onLoad} disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? 'Se încarcă...' : 'Încarcă / Creează'}
-      </button>
     </div>
   );
 }
