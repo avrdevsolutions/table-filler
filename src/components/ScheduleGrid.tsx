@@ -71,7 +71,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
           <thead>
             <tr className="bg-gray-100">
               <th className="sticky left-0 z-10 bg-gray-100 border border-gray-300 px-2 py-1 text-left min-w-[180px]">Angajat</th>
-              <th className="border border-gray-300 px-1 py-1 min-w-[90px] text-center bg-gray-100">Acțiuni</th>
+              <th className="border border-gray-300 px-1 py-1 min-w-[110px] text-center bg-gray-100">Acțiuni</th>
               {daysArr.map(d => (
                 <th key={d} className={`border border-gray-300 px-1 py-1 w-8 text-center ${isWeekend(d) ? 'bg-yellow-100' : 'bg-gray-100'}`}>
                   <div>{d}</div>
@@ -93,12 +93,12 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                   </td>
                   <td className="border border-gray-300 px-1 py-1">
                     <div className="flex gap-1 flex-wrap justify-center">
-                      <button onClick={() => setPopup({ employeeId: emp.id, mode: 'ZL' })} className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-1 py-0.5 rounded text-[10px] font-medium">ZL</button>
-                      <button onClick={() => setPopup({ employeeId: emp.id, mode: 'CO' })} className="bg-green-100 hover:bg-green-200 text-green-800 px-1 py-0.5 rounded text-[10px] font-medium">CO</button>
-                      <button onClick={() => setPopup({ employeeId: emp.id, mode: 'X' })} className="bg-red-100 hover:bg-red-200 text-red-800 px-1 py-0.5 rounded text-[10px] font-medium">X</button>
-                      <button onClick={() => setDemisieDialog({ employeeId: emp.id })} className="bg-orange-100 hover:bg-orange-200 text-orange-800 px-1 py-0.5 rounded text-[10px] font-medium">D</button>
-                      <button onClick={() => moveEmployee(idx, -1)} disabled={idx === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-20 px-0.5">↑</button>
-                      <button onClick={() => moveEmployee(idx, 1)} disabled={idx === orderedEmployees.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-20 px-0.5">↓</button>
+                      <button onClick={() => setPopup({ employeeId: emp.id, mode: 'ZL' })} className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs font-medium">ZL</button>
+                      <button onClick={() => setPopup({ employeeId: emp.id, mode: 'CO' })} className="bg-green-100 hover:bg-green-200 text-green-800 px-2 py-1 rounded text-xs font-medium">CO</button>
+                      <button onClick={() => setPopup({ employeeId: emp.id, mode: 'X' })} className="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded text-xs font-medium">X</button>
+                      <button onClick={() => setDemisieDialog({ employeeId: emp.id })} className="bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-medium">D</button>
+                      <button onClick={() => moveEmployee(idx, -1)} disabled={idx === 0} className="text-gray-400 hover:text-gray-700 disabled:opacity-20 px-1 py-1">↑</button>
+                      <button onClick={() => moveEmployee(idx, 1)} disabled={idx === orderedEmployees.length - 1} className="text-gray-400 hover:text-gray-700 disabled:opacity-20 px-1 py-1">↓</button>
                     </div>
                   </td>
                   {daysArr.map(d => {

@@ -17,13 +17,16 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
   const firstDow = new Date(year, month - 1, 1).getDay();
   const blanks = firstDow === 0 ? 6 : firstDow - 1;
 
-  function getCellStyle(day: number): string {
+  function getCellStyle(day: number): { className: string; disabled: boolean } {
     const val = currentCells[day] ?? '';
-    if (demisieDays[day]) return 'bg-gray-300 cursor-not-allowed text-gray-500';
-    if (mode === 'ZL' && val === '24') return 'bg-blue-500 text-white cursor-pointer';
-    if (mode === 'CO' && val === 'CO') return 'bg-green-500 text-white cursor-pointer';
-    if (mode === 'X' && val === 'X') return 'bg-red-400 text-white cursor-pointer';
-    return 'bg-white hover:bg-gray-100 cursor-pointer';
+    if (demisieDays[day]) return { className: 'bg-gray-300 cursor-not-allowed text-gray-500', disabled: true };
+    // Day is selected for the current mode
+    if (mode === 'ZL' && val === '24') return { className: 'bg-blue-500 text-white cursor-pointer', disabled: false };
+    if (mode === 'CO' && val === 'CO') return { className: 'bg-green-500 text-white cursor-pointer', disabled: false };
+    if (mode === 'X' && val === 'X') return { className: 'bg-red-400 text-white cursor-pointer', disabled: false };
+    // Day has a value from a different mode — show grayed out
+    if (val !== '') return { className: 'bg-gray-200 cursor-not-allowed text-gray-400', disabled: true };
+    return { className: 'bg-white hover:bg-gray-100 cursor-pointer', disabled: false };
   }
 
   return (
@@ -40,16 +43,19 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
         </div>
         <div className="grid grid-cols-7 gap-1">
           {Array.from({ length: blanks }).map((_, i) => <div key={`b${i}`} />)}
-          {Array.from({ length: days }, (_, i) => i + 1).map(day => (
-            <button
-              key={day}
-              onClick={() => !demisieDays[day] && onToggle(day)}
-              className={`rounded text-xs py-1 font-medium ${getCellStyle(day)}`}
-              disabled={!!demisieDays[day]}
-            >
-              {day}
-            </button>
-          ))}
+          {Array.from({ length: days }, (_, i) => i + 1).map(day => {
+              const { className, disabled } = getCellStyle(day);
+              return (
+                <button
+                  key={day}
+                  onClick={() => !disabled && onToggle(day)}
+                  className={`rounded text-sm py-2 font-medium ${className}`}
+                  disabled={disabled}
+                >
+                  {day}
+                </button>
+              );
+            })}
         </div>
         <div className="mt-3 flex justify-end">
           <button onClick={onClose} className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">Închide</button>
