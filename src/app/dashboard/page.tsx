@@ -25,8 +25,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status !== 'authenticated') return;
-
-    // Load selected business from localStorage
     let biz: Business | null = null;
     try {
       const saved = localStorage.getItem('selectedBusiness');
@@ -34,15 +32,12 @@ export default function DashboardPage() {
     } catch {}
     if (!biz) { router.push('/businesses'); return; }
     setSelectedBusiness(biz);
-
-    // Load active employees (active=true; includes employees with a terminationDate) for this business
     fetch(`/api/employees?businessId=${biz.id}&includeInactive=false`)
       .then(r => r.json())
       .then(setEmployees)
       .catch(() => { alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.'); });
   }, [status, router]);
 
-  // Auto-load plan whenever month, year, or business changes
   useEffect(() => {
     if (!selectedBusiness) return;
     setLoading(true);
@@ -61,7 +56,6 @@ export default function DashboardPage() {
 
   const handleCellsChange = useCallback((employeeId: string, updates: Record<number, string>) => {
     if (!plan) return;
-    // Optimistic update
     setPlan(prev => {
       if (!prev) return prev;
       const newCells = [...prev.cells];
@@ -73,7 +67,6 @@ export default function DashboardPage() {
       }
       return { ...prev, cells: newCells };
     });
-    // Persist
     const cells = Object.entries(updates).map(([day, value]) => ({
       monthPlanId: plan.id, employeeId, day: Number(day), value,
     }));
@@ -85,7 +78,6 @@ export default function DashboardPage() {
   }, [plan]);
 
   const handleEmployeeUpdate = useCallback(async (id: string, data: Partial<Employee>) => {
-    // Optimistic
     setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
     await fetch(`/api/employees/${id}`, {
       method: 'PUT',
@@ -106,13 +98,9 @@ export default function DashboardPage() {
 
   async function handleExport() {
     if (!plan) return;
-    const url = `/export/${plan.id}`;
-    window.open(url, '_blank');
+    window.open(`/export/${plan.id}`, '_blank');
   }
 
-  // Filter employees visible for the current plan month/year:
-  // - only show employees who started on or before the plan month
-  // - hide employees whose resignation (terminationDate) was before the plan month
   const visibleEmployees = plan ? employees.filter(emp => {
     const effectiveStart = new Date(emp.startDate || emp.createdAt);
     if (!isNaN(effectiveStart.getTime())) {
@@ -131,74 +119,150 @@ export default function DashboardPage() {
     return true;
   }) : employees;
 
-  if (status === 'loading') return <div className="min-h-screen flex items-center justify-center">Se încarcă...</div>;
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Se încarcă…</span>
+        </div>
+      </div>
+    );
+  }
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-screen-2xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      {/* ── Navigation Bar ── */}
+      <nav style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, zIndex: 40 }}>
+        <div className="max-w-screen-2xl mx-auto px-6 flex items-center justify-between" style={{ height: 56 }}>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-800">📅 Pontaj Lunar</h1>
-            {selectedBusiness && (
-              <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                {selectedBusiness.name}
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-center w-7 h-7 rounded-lg" style={{ background: 'var(--accent)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+              </div>
+              <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                Pontaj Lunar
               </span>
+            </div>
+            {selectedBusiness && (
+              <>
+                <span style={{ color: 'var(--border)' }}>›</span>
+                <span className="badge badge-accent">{selectedBusiness.name}</span>
+              </>
             )}
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <button onClick={() => router.push('/businesses')} className="text-blue-600 hover:text-blue-800 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50">
-              Schimbă firma
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/businesses')}
+              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+              style={{ color: 'var(--accent)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              ← Firmele mele
             </button>
-            <span className="text-gray-600">{session.user?.name || session.user?.email}</span>
-            <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-red-500 hover:text-red-700">Deconectare</button>
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {session.user?.name || session.user?.email}
+            </span>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+              style={{ color: 'var(--danger)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-light)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              Deconectare
+            </button>
           </div>
         </div>
-      </header>
+      </nav>
 
-      <main className="max-w-screen-2xl mx-auto px-4 py-6">
-        {/* Month selector */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
-          <MonthSelector
-            month={month} year={year}
-            onMonthChange={setMonth} onYearChange={setYear}
-          />
-          {plan && !loading && (
-            <button onClick={handleExport} className="ml-auto bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700">
-              📷 Exportă PNG
-            </button>
-          )}
+      <main className="max-w-screen-2xl mx-auto px-6 py-8">
+        {/* Page header + controls */}
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
+          <div>
+            <h1 className="page-title">
+              Pontaj {MONTHS_RO[month - 1]} {year}
+            </h1>
+            <p className="page-subtitle">
+              {selectedBusiness?.name}
+              {plan && !loading && (
+                <span className="ml-2" style={{ color: 'var(--text-tertiary)' }}>
+                  · {getDaysInMonth(year, month)} zile
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <MonthSelector month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
+            {plan && !loading && (
+              <button onClick={handleExport} className="btn-secondary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Exportă PNG
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* Loading state */}
         {loading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-            Se încarcă...
+          <div className="card p-16 flex flex-col items-center gap-3">
+            <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Se încarcă pontajul…</span>
           </div>
         )}
 
+        {/* Schedule grid */}
         {plan && !loading && (
-          <div className="bg-white rounded-lg shadow p-4">
-            <h2 className="font-semibold mb-3 text-gray-700">
-              Pontaj {MONTHS_RO[month - 1]} {year}
-              <span className="ml-2 text-xs text-gray-400">({getDaysInMonth(year, month)} zile)</span>
-            </h2>
+          <>
             {visibleEmployees.length === 0 ? (
-              <p className="text-gray-400 text-sm py-4 text-center">
-                Nu există angajați activi pentru această perioadă. Adăugați angajați din pagina firmei.
-              </p>
+              <div className="card p-16 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                  </svg>
+                </div>
+                <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                  Niciun angajat activ
+                </p>
+                <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                  Nu există angajați activi pentru această perioadă.
+                </p>
+                <button onClick={() => router.push('/businesses')} className="btn-primary">
+                  Gestionează angajații
+                </button>
+              </div>
             ) : (
-              <ScheduleGrid
-                plan={plan}
-                employees={visibleEmployees}
-                onCellsChange={handleCellsChange}
-                onEmployeeUpdate={handleEmployeeUpdate}
-                onEmployeeReorder={handleEmployeeReorder}
-              />
+              <div className="card p-0 overflow-hidden">
+                <ScheduleGrid
+                  plan={plan}
+                  employees={visibleEmployees}
+                  onCellsChange={handleCellsChange}
+                  onEmployeeUpdate={handleEmployeeUpdate}
+                  onEmployeeReorder={handleEmployeeReorder}
+                />
+              </div>
             )}
-          </div>
+          </>
         )}
       </main>
     </div>
   );
 }
+

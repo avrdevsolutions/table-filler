@@ -19,7 +19,6 @@ export default function BusinessesPage() {
   const [editLocation, setEditLocation] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Employee management state per business
   const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
   const [bizEmployees, setBizEmployees] = useState<Record<string, Employee[]>>({});
   const [newEmpName, setNewEmpName] = useState('');
@@ -137,54 +136,94 @@ export default function BusinessesPage() {
   }
 
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen flex items-center justify-center">Se încarcă...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <div className="flex flex-col items-center gap-3">
+          <svg className="animate-spin" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Se încarcă…</span>
+        </div>
+      </div>
+    );
   }
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800">📅 Pontaj Lunar</h1>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-gray-600">{session.user?.name || session.user?.email}</span>
-            <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-red-500 hover:text-red-700">Deconectare</button>
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      {/* ── Navigation Bar ── */}
+      <nav style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, zIndex: 40 }}>
+        <div className="max-w-3xl mx-auto px-6 py-0 flex items-center justify-between" style={{ height: 56 }}>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg" style={{ background: 'var(--accent)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              Pontaj Lunar
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {session.user?.name || session.user?.email}
+            </span>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+              style={{ color: 'var(--danger)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-light)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              Deconectare
+            </button>
           </div>
         </div>
-      </header>
+      </nav>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Selectează firma</h2>
+      {/* ── Page content ── */}
+      <main className="max-w-3xl mx-auto px-6 py-10">
+
+        {/* Page header */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="page-title">Firmele tale</h1>
+            <p className="page-subtitle">Selectează o firmă pentru a gestiona pontajul lunar.</p>
+          </div>
           <button
             onClick={() => setShowCreate(v => !v)}
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+            className="btn-primary"
           >
-            + Adaugă firmă
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Adaugă firmă
           </button>
         </div>
 
+        {/* Create firm form */}
         {showCreate && (
-          <div className="bg-white rounded-lg shadow p-4 mb-6 border border-blue-200">
-            <h3 className="font-semibold mb-3 text-gray-700">Firmă nouă</h3>
-            <div className="flex flex-col gap-2">
+          <div className="card p-6 mb-6" style={{ border: '1.5px solid var(--accent-light)' }}>
+            <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Firmă nouă</h3>
+            <div className="flex flex-col gap-3">
               <input
                 type="text" value={newName} onChange={e => setNewName(e.target.value)}
                 placeholder="Numele firmei *"
-                className="border rounded px-3 py-2 text-sm"
+                className="form-input"
               />
               <input
                 type="text" value={newLocation} onChange={e => setNewLocation(e.target.value)}
                 placeholder="Locație (ex: Ansamblul Petrila)"
-                className="border rounded px-3 py-2 text-sm"
+                className="form-input"
               />
               <div className="flex gap-2 mt-1">
-                <button onClick={handleCreate} disabled={creating || !newName.trim()}
-                  className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50">
-                  {creating ? '...' : 'Salvează'}
+                <button onClick={handleCreate} disabled={creating || !newName.trim()} className="btn-primary">
+                  {creating ? 'Se salvează…' : 'Salvează firma'}
                 </button>
-                <button onClick={() => { setShowCreate(false); setNewName(''); setNewLocation(''); }}
-                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-300">
+                <button onClick={() => { setShowCreate(false); setNewName(''); setNewLocation(''); }} className="btn-ghost">
                   Anulează
                 </button>
               </div>
@@ -192,135 +231,223 @@ export default function BusinessesPage() {
           </div>
         )}
 
+        {/* Empty state */}
         {businesses.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-            Nu există firme. Adăugați una pentru a începe.
+          <div className="card p-16 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+              style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Nicio firmă adăugată</p>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+              Adaugă prima firmă pentru a începe să gestionezi pontajele.
+            </p>
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Adaugă prima firmă
+            </button>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="flex flex-col gap-4">
             {businesses.map(biz => (
-              <div key={biz.id} className="bg-white rounded-lg shadow border border-gray-200">
+              <div key={biz.id} className="card overflow-hidden" style={{ transition: 'box-shadow 150ms ease' }}>
+
                 {editId === biz.id ? (
-                  <div className="p-4 flex flex-col gap-2">
+                  /* Edit form */
+                  <div className="p-6 flex flex-col gap-3">
+                    <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>Editează firma</p>
                     <input
                       type="text" value={editName} onChange={e => setEditName(e.target.value)}
-                      className="border rounded px-3 py-2 text-sm font-medium"
+                      className="form-input font-medium"
                     />
                     <input
                       type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)}
                       placeholder="Locație"
-                      className="border rounded px-3 py-2 text-sm"
+                      className="form-input"
                     />
                     <div className="flex gap-2">
-                      <button onClick={() => handleEdit(biz.id)} disabled={!editName.trim()}
-                        className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
+                      <button onClick={() => handleEdit(biz.id)} disabled={!editName.trim()} className="btn-primary">
                         Salvează
                       </button>
-                      <button onClick={() => setEditId(null)}
-                        className="bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-300">
-                        Anulează
-                      </button>
+                      <button onClick={() => setEditId(null)} className="btn-ghost">Anulează</button>
                     </div>
                   </div>
+
                 ) : deleteConfirmId === biz.id ? (
-                  <div className="p-4">
-                    <p className="text-red-600 font-medium mb-2">
-                      Ștergeți firma <strong>{biz.name}</strong>? Toți angajații și planificările vor fi șterse ireversibil.
-                    </p>
+                  /* Delete confirmation */
+                  <div className="p-6" style={{ background: 'var(--danger-light)' }}>
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl"
+                        style={{ background: 'rgba(255,59,48,0.15)' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm" style={{ color: 'var(--danger)' }}>
+                          Ștergeți firma <strong>{biz.name}</strong>?
+                        </p>
+                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                          Toți angajații și planificările vor fi șterse ireversibil.
+                        </p>
+                      </div>
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleDelete(biz.id)}
-                        className="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700">
+                      <button onClick={() => handleDelete(biz.id)} className="btn-danger">
                         Șterge definitiv
                       </button>
-                      <button onClick={() => setDeleteConfirmId(null)}
-                        className="bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-300">
-                        Anulează
-                      </button>
+                      <button onClick={() => setDeleteConfirmId(null)} className="btn-ghost">Anulează</button>
                     </div>
                   </div>
+
                 ) : (
                   <>
-                    <div className="p-4 flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-gray-800 text-lg">{biz.name}</p>
-                        <p className="text-sm text-gray-500">{biz.locationName}</p>
+                    {/* Business card main row */}
+                    <div className="p-5 flex items-center gap-4">
+                      {/* Icon */}
+                      <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl"
+                        style={{ background: 'var(--accent-light)' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                          <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => toggleExpand(biz.id)}
-                          className="text-sm text-gray-600 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50">
-                          👥 Angajați {expandedBizId === biz.id ? '▲' : '▼'}
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-base truncate" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                          {biz.name}
+                        </p>
+                        {biz.locationName && (
+                          <p className="text-sm truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                            {biz.locationName}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => toggleExpand(biz.id)}
+                          className="btn-ghost text-xs px-3 py-2"
+                          style={{ minHeight: 36 }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                          </svg>
+                          Angajați {expandedBizId === biz.id ? '▲' : '▼'}
                         </button>
-                        <button onClick={() => { setEditId(biz.id); setEditName(biz.name); setEditLocation(biz.locationName); }}
-                          className="text-sm text-blue-600 hover:text-blue-800 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50">
+                        <button
+                          onClick={() => { setEditId(biz.id); setEditName(biz.name); setEditLocation(biz.locationName); }}
+                          className="btn-ghost text-xs px-3 py-2"
+                          style={{ minHeight: 36, color: 'var(--accent)', borderColor: 'var(--accent-light)' }}
+                        >
                           Editează
                         </button>
-                        <button onClick={() => setDeleteConfirmId(biz.id)}
-                          className="text-sm text-red-500 hover:text-red-700 border border-red-200 px-3 py-1.5 rounded hover:bg-red-50">
+                        <button
+                          onClick={() => setDeleteConfirmId(biz.id)}
+                          className="btn-ghost text-xs px-3 py-2"
+                          style={{ minHeight: 36, color: 'var(--danger)', borderColor: 'rgba(255,59,48,0.2)' }}
+                        >
                           Șterge
                         </button>
-                        <button onClick={() => handleSelect(biz)}
-                          className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700 font-medium">
-                          Intră →
+                        <button onClick={() => handleSelect(biz)} className="btn-primary text-xs px-4 py-2" style={{ minHeight: 36 }}>
+                          Deschide →
                         </button>
                       </div>
                     </div>
 
-                    {/* Employee management panel */}
+                    {/* Employees panel */}
                     {expandedBizId === biz.id && (
-                      <div className="border-t border-gray-100 p-4 bg-gray-50">
-                        <h4 className="font-medium text-gray-700 mb-3 text-sm">Angajați — {biz.name}</h4>
+                      <div style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--surface-2)' }} className="p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-tertiary)' }}>
+                          Angajați — {biz.name}
+                        </p>
 
-                        {/* Add employee form */}
-                        <div className="flex flex-col gap-2 mb-3">
-                          <div className="flex gap-2">
-                            <input
-                              type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)}
-                              onKeyDown={e => e.key === 'Enter' && handleAddEmployee(biz.id)}
-                              placeholder="Nume complet angajat nou"
-                              className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
-                            />
-                            <input
-                              type="date" value={newEmpStartDate} onChange={e => setNewEmpStartDate(e.target.value)}
-                              title="Data angajării"
-                              className="border rounded px-3 py-1.5 text-sm bg-white"
-                            />
-                            <button onClick={() => handleAddEmployee(biz.id)} disabled={addingEmp || !newEmpName.trim()}
-                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
-                              {addingEmp ? '...' : '+ Adaugă'}
-                            </button>
-                          </div>
+                        {/* Add employee */}
+                        <div className="flex gap-2 mb-4 flex-wrap">
+                          <input
+                            type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleAddEmployee(biz.id)}
+                            placeholder="Nume complet angajat nou"
+                            className="form-input flex-1" style={{ minWidth: 180, minHeight: 40, fontSize: '0.875rem', padding: '8px 14px' }}
+                          />
+                          <input
+                            type="date" value={newEmpStartDate} onChange={e => setNewEmpStartDate(e.target.value)}
+                            title="Data angajării"
+                            className="form-input" style={{ width: 150, minHeight: 40, fontSize: '0.875rem', padding: '8px 14px' }}
+                          />
+                          <button
+                            onClick={() => handleAddEmployee(biz.id)}
+                            disabled={addingEmp || !newEmpName.trim()}
+                            className="btn-primary text-xs px-4"
+                            style={{ minHeight: 40 }}
+                          >
+                            {addingEmp ? '…' : '+ Adaugă'}
+                          </button>
                         </div>
 
                         {/* Employee list */}
                         {(bizEmployees[biz.id] ?? []).length === 0 ? (
-                          <p className="text-gray-400 text-sm text-center py-2">Nu există angajați.</p>
+                          <p className="text-sm text-center py-4" style={{ color: 'var(--text-tertiary)' }}>
+                            Niciun angajat adăugat.
+                          </p>
                         ) : (
-                          <div className="space-y-1">
+                          <div className="flex flex-col gap-1.5">
                             {(bizEmployees[biz.id] ?? []).map(emp => (
-                              <div key={emp.id} className={`flex items-center justify-between px-3 py-2 rounded text-sm ${emp.active ? 'bg-white border border-gray-200' : 'bg-gray-100 border border-gray-200 opacity-60'}`}>
-                                <div>
-                                  <span className={emp.active ? 'font-medium text-gray-800' : 'text-gray-500 line-through'}>
-                                    {emp.fullName}
-                                  </span>
-                                  {emp.startDate && (
-                                    <span className="ml-2 text-xs text-gray-400">din {emp.startDate}</span>
-                                  )}
-                                  {emp.terminationDate && (
-                                    <span className="ml-2 text-xs text-orange-600">Demisie</span>
-                                  )}
-                                  {!emp.active && !emp.terminationDate && (
-                                    <span className="ml-2 text-xs text-gray-400">Inactiv</span>
-                                  )}
+                              <div
+                                key={emp.id}
+                                className="flex items-center justify-between px-4 py-2.5 rounded-xl"
+                                style={{
+                                  background: emp.active ? 'var(--surface)' : 'transparent',
+                                  border: `1px solid ${emp.active ? 'var(--border-subtle)' : 'var(--border-subtle)'}`,
+                                  opacity: emp.active ? 1 : 0.55,
+                                }}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold"
+                                    style={{ background: emp.active ? 'var(--accent-light)' : 'var(--border-subtle)', color: emp.active ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                                    {emp.fullName.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <span className={`text-sm font-medium ${!emp.active ? 'line-through' : ''}`} style={{ color: emp.active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                                      {emp.fullName}
+                                    </span>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      {emp.startDate && (
+                                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>din {emp.startDate}</span>
+                                      )}
+                                      {emp.terminationDate && (
+                                        <span className="badge badge-warning">Demisie</span>
+                                      )}
+                                      {!emp.active && !emp.terminationDate && (
+                                        <span className="badge" style={{ background: 'var(--border-subtle)', color: 'var(--text-tertiary)' }}>Inactiv</span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div>
                                   {emp.active ? (
-                                    <button onClick={() => handleDeactivateEmployee(biz.id, emp.id)}
-                                      className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded hover:bg-red-50">
+                                    <button
+                                      onClick={() => handleDeactivateEmployee(biz.id, emp.id)}
+                                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+                                      style={{ color: 'var(--danger)', background: 'var(--danger-light)', border: '1px solid rgba(255,59,48,0.15)' }}
+                                    >
                                       Dezactivează
                                     </button>
                                   ) : (
-                                    <button onClick={() => handleReactivateEmployee(biz.id, emp.id)}
-                                      className="text-xs text-green-600 hover:text-green-800 border border-green-200 px-2 py-1 rounded hover:bg-green-50">
+                                    <button
+                                      onClick={() => handleReactivateEmployee(biz.id, emp.id)}
+                                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+                                      style={{ color: '#1a7f3c', background: 'var(--success-light)', border: '1px solid rgba(48,209,88,0.2)' }}
+                                    >
                                       Reactivează
                                     </button>
                                   )}
@@ -341,3 +468,4 @@ export default function BusinessesPage() {
     </div>
   );
 }
+
