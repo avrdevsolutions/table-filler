@@ -408,6 +408,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
           year={year} month={month}
           employeeName={demisieEmployee.fullName}
           currentDate={demisieEmployee.terminationDate}
+          currentCells={cellMap[demisieEmployee.id] ?? {}}
           onConfirm={date => {
             onEmployeeUpdate(demisieEmployee.id, { terminationDate: date });
             // Clear shift cells that fall within the demisie period so the grid stays consistent

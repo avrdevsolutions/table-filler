@@ -1,11 +1,12 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { MONTHS_RO, getDaysInMonth } from '@/lib/schedule';
 import type { MonthPlan, Employee, Business } from '@/types';
 import MonthSelector from '@/components/MonthSelector';
 import ScheduleGrid from '@/components/ScheduleGrid';
+import ScheduleTable from '@/components/ScheduleTable';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -17,7 +18,9 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<MonthPlan | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -97,9 +100,26 @@ export default function DashboardPage() {
   }, [plan]);
 
   async function handleExport() {
-    if (!plan) return;
-    // Open the export page in a new tab; it will render the schedule as PNG
-    window.open(`/export/${plan.id}`, '_blank');
+    if (!plan || !exportRef.current) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const link = document.createElement('a');
+      const monthName = MONTHS_RO[month - 1].toLowerCase();
+      link.download = `pontaj-${monthName}-${year}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (e) {
+      console.error(e);
+      alert('Eroare la export');
+    }
+    setExporting(false);
   }
 
   const visibleEmployees = plan ? employees.filter(emp => {
@@ -137,59 +157,57 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* ── Navigation Bar ── */}
-      <nav style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border-subtle)', position: 'sticky', top: 0, zIndex: 40 }}>
-        <div className="max-w-screen-2xl mx-auto px-6 flex items-center justify-between" style={{ height: 56 }}>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-7 h-7 rounded-lg" style={{ background: 'var(--accent)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                  <line x1="16" y1="2" x2="16" y2="6"/>
-                  <line x1="8" y1="2" x2="8" y2="6"/>
-                  <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-              </div>
-              <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                Pontaj Lunar
-              </span>
+      <nav style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 40 }}>
+        <div className="max-w-screen-2xl mx-auto flex items-center justify-between" style={{ height: 52, paddingLeft: 16, paddingRight: 16 }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0" style={{ background: 'var(--accent)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
             </div>
+            <span className="font-semibold text-sm hidden sm:inline" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+              Pontaj Lunar
+            </span>
             {selectedBusiness && (
               <>
-                <span style={{ color: 'var(--border)' }}>›</span>
-                <span className="badge badge-accent">{selectedBusiness.name}</span>
+                <span className="hidden sm:inline" style={{ color: 'var(--border)' }}>›</span>
+                <span className="badge badge-accent truncate" style={{ maxWidth: 120 }} title={selectedBusiness.name}>{selectedBusiness.name}</span>
               </>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => router.push('/businesses')}
               className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--accent)' }}
+              style={{ color: 'var(--accent)', whiteSpace: 'nowrap' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
-              ← Firmele mele
+              <span className="hidden sm:inline">← </span>Firme
             </button>
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary)' }}>
               {session.user?.name || session.user?.email}
             </span>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
               className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--danger)', background: 'transparent' }}
+              style={{ color: 'var(--danger)', background: 'transparent', whiteSpace: 'nowrap' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-light)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
-              Deconectare
+              Ieșire
             </button>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-screen-2xl mx-auto px-6 py-8">
+      <main className="max-w-screen-2xl mx-auto py-6" style={{ paddingLeft: 16, paddingRight: 16 }}>
         {/* Page header + controls */}
-        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
-          <div>
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
+          <div className="min-w-0">
             <h1 className="page-title">
               Pontaj {MONTHS_RO[month - 1]} {year}
             </h1>
@@ -205,13 +223,19 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <MonthSelector month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
             {plan && !loading && (
-              <button onClick={handleExport} className="btn-secondary">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Exportă PNG
+              <button onClick={handleExport} disabled={exporting} className="btn-secondary">
+                {exporting ? (
+                  <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                  </svg>
+                ) : (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                )}
+                {exporting ? 'Se generează…' : 'Exportă PNG'}
               </button>
             )}
           </div>
@@ -233,7 +257,7 @@ export default function DashboardPage() {
             {visibleEmployees.length === 0 ? (
               <div className="card p-16 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)' }}>
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
@@ -261,6 +285,19 @@ export default function DashboardPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Hidden export target — auto-sized ScheduleTable captured by html2canvas */}
+        {plan && visibleEmployees.length > 0 && (
+          <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -1 }}>
+            <div ref={exportRef}>
+              <ScheduleTable
+                plan={plan}
+                employees={visibleEmployees}
+                businessName={selectedBusiness?.name}
+              />
+            </div>
+          </div>
         )}
       </main>
     </div>

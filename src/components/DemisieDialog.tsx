@@ -7,11 +7,12 @@ interface Props {
   month: number;
   employeeName: string;
   currentDate?: string | null;
+  currentCells?: Record<number, string>;
   onConfirm: (date: string | null) => void;
   onClose: () => void;
 }
 
-export default function DemisieDialog({ year, month, employeeName, currentDate, onConfirm, onClose }: Props) {
+export default function DemisieDialog({ year, month, employeeName, currentDate, currentCells, onConfirm, onClose }: Props) {
   const days = getDaysInMonth(year, month);
   const [selectedDay, setSelectedDay] = useState<number | null>(
     currentDate ? new Date(currentDate).getDate() : null
@@ -27,21 +28,21 @@ export default function DemisieDialog({ year, month, employeeName, currentDate, 
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
         className="rounded-2xl overflow-hidden"
         style={{
           background: 'var(--surface)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 8px 20px rgba(0,0,0,0.1)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
           width: 300,
           maxWidth: '95vw',
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+        <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Demisie</p>
@@ -51,7 +52,7 @@ export default function DemisieDialog({ year, month, employeeName, currentDate, 
               onClick={onClose}
               className="flex items-center justify-center w-7 h-7 rounded-full"
               style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--border-subtle)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -67,28 +68,55 @@ export default function DemisieDialog({ year, month, employeeName, currentDate, 
             Selectează ziua de începere a demisiei:
           </p>
           <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: days }, (_, i) => i + 1).map(day => (
-              <button
-                key={day}
-                onClick={() => setSelectedDay(selectedDay === day ? null : day)}
-                className="text-xs font-medium rounded-lg transition-all duration-100"
-                style={{
-                  height: 34,
-                  background: selectedDay === day ? 'var(--warning)' : 'var(--surface-2)',
-                  color: selectedDay === day ? '#fff' : 'var(--text-primary)',
-                  border: selectedDay === day ? 'none' : '1px solid var(--border-subtle)',
-                }}
-                onMouseEnter={e => {
-                  if (selectedDay !== day) e.currentTarget.style.background = 'var(--warning-light)';
-                }}
-                onMouseLeave={e => {
-                  if (selectedDay !== day) e.currentTarget.style.background = 'var(--surface-2)';
-                }}
-              >
-                {day}
-              </button>
-            ))}
+            {Array.from({ length: days }, (_, i) => i + 1).map(day => {
+              const isSelected = selectedDay === day;
+              // Gray out days that already have a schedule value (ZL/CO/X), same as CalendarPopup
+              const existingVal = currentCells?.[day] ?? '';
+              const hasValue = existingVal !== '';
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  className="text-xs font-medium rounded-lg transition-all duration-100"
+                  style={{
+                    height: 34,
+                    background: isSelected
+                      ? 'var(--warning)'
+                      : hasValue
+                      ? 'var(--surface-2)'
+                      : 'var(--surface-2)',
+                    color: isSelected
+                      ? '#1a1a1a'   /* dark text on --warning yellow for strong contrast */
+                      : hasValue
+                      ? 'var(--text-tertiary)'
+                      : 'var(--text-primary)',
+                    border: isSelected
+                      ? 'none'
+                      : hasValue
+                      ? '1px solid var(--border-subtle)'
+                      : '1px solid var(--border)',
+                    opacity: hasValue && !isSelected ? 0.45 : 1,
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSelected) e.currentTarget.style.background = 'var(--warning-light)';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSelected) e.currentTarget.style.background = 'var(--surface-2)';
+                  }}
+                >
+                  {day}
+                </button>
+              );
+            })}
           </div>
+          {/* Legend */}
+          {currentCells && Object.values(currentCells).some(v => v !== '') && (
+            <p className="text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
+              Zilele estompate au valori deja setate (ZL/CO/X).
+            </p>
+          )}
         </div>
 
         {/* Footer */}
@@ -108,8 +136,8 @@ export default function DemisieDialog({ year, month, employeeName, currentDate, 
           <button
             onClick={handleConfirm}
             className="text-xs font-semibold px-4 py-2 rounded-lg transition-colors duration-150"
-            style={{ background: 'var(--warning)', color: '#fff', minHeight: 36 }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#e08c00')}
+            style={{ background: 'var(--warning)', color: '#1a1a1a', minHeight: 36, fontWeight: 700 }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#e6c000')}
             onMouseLeave={e => (e.currentTarget.style.background = 'var(--warning)')}
           >
             Confirmă

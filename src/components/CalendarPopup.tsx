@@ -39,21 +39,21 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
         className="rounded-2xl overflow-hidden"
         style={{
           background: 'var(--surface)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 8px 20px rgba(0,0,0,0.1)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
           width: 320,
           maxWidth: '95vw',
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+        <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{employeeName}</p>
