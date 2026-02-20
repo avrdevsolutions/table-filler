@@ -205,7 +205,7 @@ export default function DashboardPage() {
 
         {!plan && !loading && (
           <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-            Selectați luna și apăsați &quot;Încarcă / Creează&quot; pentru a începe.
+            Selectați luna și apăsați "Încarcă / Creează" pentru a începe.
           </div>
         )}
       </main>
