@@ -4,9 +4,10 @@ import ScheduleTable from '@/components/ScheduleTable';
 import type { Employee, MonthPlan, Cell } from '@/types';
 import ExportButton from './ExportButton';
 
-export default async function ExportPage({ params }: { params: { planId: string } }) {
+export default async function ExportPage({ params }: { params: Promise<{ planId: string }> }) {
+  const { planId } = await params;
   const plan = await prisma.monthPlan.findUnique({
-    where: { id: params.planId },
+    where: { id: planId },
     include: { cells: true },
   });
   if (!plan) notFound();
