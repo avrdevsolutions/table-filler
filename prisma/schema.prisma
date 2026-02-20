@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  password   String
+  name       String?
+  monthPlans MonthPlan[]
+  employees  Employee[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Employee {
+  id              String   @id @default(cuid())
+  fullName        String
+  active          Boolean  @default(true)
+  terminationDate String?
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model MonthPlan {
+  id           String   @id @default(cuid())
+  month        Int
+  year         Int
+  locationName String   @default("Ansamblul Petrila")
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeIds  String
+  cells        Cell[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, month, year])
+}
+
+model Cell {
+  id          String    @id @default(cuid())
+  monthPlanId String
+  monthPlan   MonthPlan @relation(fields: [monthPlanId], references: [id], onDelete: Cascade)
+  employeeId  String
+  day         Int
+  value       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([monthPlanId, employeeId, day])
+}
