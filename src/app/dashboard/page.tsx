@@ -98,6 +98,7 @@ export default function DashboardPage() {
 
   async function handleExport() {
     if (!plan) return;
+    // Open the export page in a new tab; it will render the schedule as PNG
     window.open(`/export/${plan.id}`, '_blank');
   }
 
