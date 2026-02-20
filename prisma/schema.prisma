@@ -58,7 +58,7 @@ model MonthPlan {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  @@unique([userId, month, year])
+  @@unique([businessId, month, year])
 }
 
 model Cell {

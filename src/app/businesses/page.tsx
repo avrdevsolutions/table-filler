@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import type { Business } from '@/types';
+import type { Business, Employee } from '@/types';
 
 export default function BusinessesPage() {
   const { data: session, status } = useSession();
@@ -19,6 +19,12 @@ export default function BusinessesPage() {
   const [editLocation, setEditLocation] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  // Employee management state per business
+  const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
+  const [bizEmployees, setBizEmployees] = useState<Record<string, Employee[]>>({});
+  const [newEmpName, setNewEmpName] = useState('');
+  const [addingEmp, setAddingEmp] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
   }, [status, router]);
@@ -30,6 +36,22 @@ export default function BusinessesPage() {
       .then(data => { setBusinesses(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [status]);
+
+  async function loadEmployees(bizId: string) {
+    const res = await fetch(`/api/employees?businessId=${bizId}&includeInactive=true`);
+    const emps = await res.json();
+    setBizEmployees(prev => ({ ...prev, [bizId]: emps }));
+  }
+
+  function toggleExpand(bizId: string) {
+    if (expandedBizId === bizId) {
+      setExpandedBizId(null);
+    } else {
+      setExpandedBizId(bizId);
+      setNewEmpName('');
+      loadEmployees(bizId);
+    }
+  }
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -63,6 +85,7 @@ export default function BusinessesPage() {
     await fetch(`/api/businesses/${id}`, { method: 'DELETE' });
     setBusinesses(prev => prev.filter(b => b.id !== id));
     setDeleteConfirmId(null);
+    if (expandedBizId === id) setExpandedBizId(null);
   }
 
   function handleSelect(biz: Business) {
@@ -70,6 +93,44 @@ export default function BusinessesPage() {
       localStorage.setItem('selectedBusiness', JSON.stringify({ id: biz.id, name: biz.name, locationName: biz.locationName }));
     } catch {}
     router.push('/dashboard');
+  }
+
+  async function handleAddEmployee(bizId: string) {
+    if (!newEmpName.trim()) return;
+    setAddingEmp(true);
+    const res = await fetch('/api/employees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName: newEmpName.trim(), businessId: bizId }),
+    });
+    const emp = await res.json();
+    setBizEmployees(prev => ({ ...prev, [bizId]: [...(prev[bizId] ?? []), emp] }));
+    setNewEmpName('');
+    setAddingEmp(false);
+  }
+
+  async function handleDeactivateEmployee(bizId: string, empId: string) {
+    await fetch(`/api/employees/${empId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: false }),
+    });
+    setBizEmployees(prev => ({
+      ...prev,
+      [bizId]: (prev[bizId] ?? []).map(e => e.id === empId ? { ...e, active: false } : e),
+    }));
+  }
+
+  async function handleReactivateEmployee(bizId: string, empId: string) {
+    await fetch(`/api/employees/${empId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: true, terminationDate: null }),
+    });
+    setBizEmployees(prev => ({
+      ...prev,
+      [bizId]: (prev[bizId] ?? []).map(e => e.id === empId ? { ...e, active: true, terminationDate: null } : e),
+    }));
   }
 
   if (status === 'loading' || loading) {
@@ -135,9 +196,9 @@ export default function BusinessesPage() {
         ) : (
           <div className="grid gap-4">
             {businesses.map(biz => (
-              <div key={biz.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+              <div key={biz.id} className="bg-white rounded-lg shadow border border-gray-200">
                 {editId === biz.id ? (
-                  <div className="flex flex-col gap-2">
+                  <div className="p-4 flex flex-col gap-2">
                     <input
                       type="text" value={editName} onChange={e => setEditName(e.target.value)}
                       className="border rounded px-3 py-2 text-sm font-medium"
@@ -159,7 +220,7 @@ export default function BusinessesPage() {
                     </div>
                   </div>
                 ) : deleteConfirmId === biz.id ? (
-                  <div>
+                  <div className="p-4">
                     <p className="text-red-600 font-medium mb-2">
                       Ștergeți firma <strong>{biz.name}</strong>? Toți angajații și planificările vor fi șterse ireversibil.
                     </p>
@@ -175,26 +236,89 @@ export default function BusinessesPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-800 text-lg">{biz.name}</p>
-                      <p className="text-sm text-gray-500">{biz.locationName}</p>
+                  <>
+                    <div className="p-4 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-800 text-lg">{biz.name}</p>
+                        <p className="text-sm text-gray-500">{biz.locationName}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => toggleExpand(biz.id)}
+                          className="text-sm text-gray-600 hover:text-gray-800 border border-gray-200 px-3 py-1.5 rounded hover:bg-gray-50">
+                          👥 Angajați {expandedBizId === biz.id ? '▲' : '▼'}
+                        </button>
+                        <button onClick={() => { setEditId(biz.id); setEditName(biz.name); setEditLocation(biz.locationName); }}
+                          className="text-sm text-blue-600 hover:text-blue-800 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50">
+                          Editează
+                        </button>
+                        <button onClick={() => setDeleteConfirmId(biz.id)}
+                          className="text-sm text-red-500 hover:text-red-700 border border-red-200 px-3 py-1.5 rounded hover:bg-red-50">
+                          Șterge
+                        </button>
+                        <button onClick={() => handleSelect(biz)}
+                          className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700 font-medium">
+                          Intră →
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditId(biz.id); setEditName(biz.name); setEditLocation(biz.locationName); }}
-                        className="text-sm text-blue-600 hover:text-blue-800 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50">
-                        Editează
-                      </button>
-                      <button onClick={() => setDeleteConfirmId(biz.id)}
-                        className="text-sm text-red-500 hover:text-red-700 border border-red-200 px-3 py-1.5 rounded hover:bg-red-50">
-                        Șterge
-                      </button>
-                      <button onClick={() => handleSelect(biz)}
-                        className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700 font-medium">
-                        Intră →
-                      </button>
-                    </div>
-                  </div>
+
+                    {/* Employee management panel */}
+                    {expandedBizId === biz.id && (
+                      <div className="border-t border-gray-100 p-4 bg-gray-50">
+                        <h4 className="font-medium text-gray-700 mb-3 text-sm">Angajați — {biz.name}</h4>
+
+                        {/* Add employee form */}
+                        <div className="flex gap-2 mb-3">
+                          <input
+                            type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleAddEmployee(biz.id)}
+                            placeholder="Nume complet angajat nou"
+                            className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                          />
+                          <button onClick={() => handleAddEmployee(biz.id)} disabled={addingEmp || !newEmpName.trim()}
+                            className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
+                            {addingEmp ? '...' : '+ Adaugă'}
+                          </button>
+                        </div>
+
+                        {/* Employee list */}
+                        {(bizEmployees[biz.id] ?? []).length === 0 ? (
+                          <p className="text-gray-400 text-sm text-center py-2">Nu există angajați.</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {(bizEmployees[biz.id] ?? []).map(emp => (
+                              <div key={emp.id} className={`flex items-center justify-between px-3 py-2 rounded text-sm ${emp.active ? 'bg-white border border-gray-200' : 'bg-gray-100 border border-gray-200 opacity-60'}`}>
+                                <div>
+                                  <span className={emp.active ? 'font-medium text-gray-800' : 'text-gray-500 line-through'}>
+                                    {emp.fullName}
+                                  </span>
+                                  {emp.terminationDate && (
+                                    <span className="ml-2 text-xs text-orange-600">Demisie</span>
+                                  )}
+                                  {!emp.active && !emp.terminationDate && (
+                                    <span className="ml-2 text-xs text-gray-400">Inactiv</span>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  {emp.active ? (
+                                    <button onClick={() => handleDeactivateEmployee(biz.id, emp.id)}
+                                      className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded hover:bg-red-50">
+                                      Dezactivează
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => handleReactivateEmployee(biz.id, emp.id)}
+                                      className="text-xs text-green-600 hover:text-green-800 border border-green-200 px-2 py-1 rounded hover:bg-green-50">
+                                      Reactivează
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}

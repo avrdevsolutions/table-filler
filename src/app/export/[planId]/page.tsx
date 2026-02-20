@@ -1,4 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import ScheduleTable from '@/components/ScheduleTable';
 import type { Employee, MonthPlan, Cell } from '@/types';
@@ -7,11 +9,19 @@ import ScaleWrapper from './ScaleWrapper';
 
 export default async function ExportPage({ params }: { params: Promise<{ planId: string }> }) {
   const { planId } = await params;
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect('/login');
+  const userId = (session.user as { id: string }).id;
+
   const plan = await prisma.monthPlan.findUnique({
     where: { id: planId },
     include: { cells: true, business: true },
   });
   if (!plan) notFound();
+
+  // Authorization: plan must belong to the logged-in user
+  if (plan.userId !== userId && plan.business?.ownerUserId !== userId) notFound();
 
   const employeeIds: string[] = JSON.parse(plan.employeeIds || '[]');
   const employeesRaw = await prisma.employee.findMany({ where: { id: { in: employeeIds } } });

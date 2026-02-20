@@ -9,9 +9,11 @@ export async function GET(req: Request) {
   const userId = (session.user as { id: string }).id;
   const { searchParams } = new URL(req.url);
   const businessId = searchParams.get('businessId');
+  const includeInactive = searchParams.get('includeInactive') === 'true';
+  const activeFilter = includeInactive ? {} : { active: true };
   const where = businessId
-    ? { userId, businessId, active: true }
-    : { userId, active: true };
+    ? { userId, businessId, ...activeFilter }
+    : { userId, ...activeFilter };
   const employees = await prisma.employee.findMany({
     where,
     orderBy: { createdAt: 'asc' },

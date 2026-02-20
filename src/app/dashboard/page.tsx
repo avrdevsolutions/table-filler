@@ -17,8 +17,6 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<MonthPlan | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
-  const [newEmpName, setNewEmpName] = useState('');
-  const [addingEmp, setAddingEmp] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
 
   useEffect(() => {
@@ -73,33 +71,21 @@ export default function DashboardPage() {
       const fullRes = await fetch(`/api/month-plans/${p.id}`);
       const full = await fullRes.json();
       setPlan(full);
+      // Sync employees list from the loaded plan (plan may include employees added since last load)
+      const planEmpIds: string[] = JSON.parse(full.employeeIds || '[]');
+      setEmployees(prev => {
+        const existing = new Set(prev.map(e => e.id));
+        const missing = planEmpIds.filter(id => !existing.has(id));
+        if (missing.length === 0) return prev;
+        // Refetch full list to ensure we have all employees in plan
+        fetch(`/api/employees?businessId=${selectedBusiness.id}`).then(r => r.json()).then(setEmployees).catch(console.error);
+        return prev;
+      });
       try { localStorage.setItem(`lastPlan_${selectedBusiness.id}`, JSON.stringify({ planId: full.id, month, year })); } catch {}
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
-  }
-
-  async function handleAddEmployee() {
-    if (!newEmpName.trim() || !plan || !selectedBusiness) return;
-    setAddingEmp(true);
-    const res = await fetch('/api/employees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName: newEmpName.trim(), businessId: selectedBusiness.id }),
-    });
-    const emp = await res.json();
-    const newEmployees = [...employees, emp];
-    setEmployees(newEmployees);
-    const newIds = [...JSON.parse(plan.employeeIds || '[]'), emp.id];
-    await fetch(`/api/month-plans/${plan.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeIds: newIds }),
-    });
-    setPlan(prev => prev ? { ...prev, employeeIds: JSON.stringify(newIds) } : prev);
-    setNewEmpName('');
-    setAddingEmp(false);
   }
 
   const handleCellsChange = useCallback((employeeId: string, updates: Record<number, string>) => {
@@ -144,17 +130,6 @@ export default function DashboardPage() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ employeeIds: ids }),
-    });
-  }, [plan]);
-
-  const handleEmployeeRemove = useCallback(async (id: string) => {
-    if (!plan) return;
-    const newIds = JSON.parse(plan.employeeIds || '[]').filter((eid: string) => eid !== id);
-    setPlan(prev => prev ? { ...prev, employeeIds: JSON.stringify(newIds) } : prev);
-    await fetch(`/api/month-plans/${plan.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeIds: newIds }),
     });
   }, [plan]);
 
@@ -206,43 +181,25 @@ export default function DashboardPage() {
         </div>
 
         {plan && (
-          <>
-            {/* Add employee */}
-            <div className="bg-white rounded-lg shadow p-4 mb-4">
-              <h2 className="font-semibold mb-3 text-gray-700">Adaugă angajat</h2>
-              <div className="flex gap-2">
-                <input
-                  type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddEmployee()}
-                  placeholder="Nume complet angajat"
-                  className="border rounded px-3 py-2 text-sm flex-1"
-                />
-                <button onClick={handleAddEmployee} disabled={addingEmp || !newEmpName.trim()} className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50">
-                  {addingEmp ? '...' : 'Adaugă'}
-                </button>
-              </div>
-            </div>
-
-            {/* Schedule grid */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="font-semibold mb-3 text-gray-700">
-                Pontaj {MONTHS_RO[month - 1]} {year}
-                <span className="ml-2 text-xs text-gray-400">({getDaysInMonth(year, month)} zile)</span>
-              </h2>
-              {JSON.parse(plan.employeeIds || '[]').length === 0 ? (
-                <p className="text-gray-400 text-sm py-4 text-center">Adaugă angajați pentru a începe.</p>
-              ) : (
-                <ScheduleGrid
-                  plan={plan}
-                  employees={employees}
-                  onCellsChange={handleCellsChange}
-                  onEmployeeUpdate={handleEmployeeUpdate}
-                  onEmployeeReorder={handleEmployeeReorder}
-                  onEmployeeRemove={handleEmployeeRemove}
-                />
-              )}
-            </div>
-          </>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h2 className="font-semibold mb-3 text-gray-700">
+              Pontaj {MONTHS_RO[month - 1]} {year}
+              <span className="ml-2 text-xs text-gray-400">({getDaysInMonth(year, month)} zile)</span>
+            </h2>
+            {JSON.parse(plan.employeeIds || '[]').length === 0 ? (
+              <p className="text-gray-400 text-sm py-4 text-center">
+                Nu există angajați activi pentru această firmă. Adăugați angajați din pagina firmei.
+              </p>
+            ) : (
+              <ScheduleGrid
+                plan={plan}
+                employees={employees}
+                onCellsChange={handleCellsChange}
+                onEmployeeUpdate={handleEmployeeUpdate}
+                onEmployeeReorder={handleEmployeeReorder}
+              />
+            )}
+          </div>
         )}
 
         {!plan && !loading && (
