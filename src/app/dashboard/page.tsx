@@ -170,7 +170,8 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center gap-4 flex-wrap">
           <MonthSelector
             month={month} year={year}
-            onMonthChange={setMonth} onYearChange={setYear}
+            onMonthChange={(m) => { setMonth(m); setPlan(null); }}
+            onYearChange={(y) => { setYear(y); setPlan(null); }}
             onLoad={handleLoad} loading={loading}
           />
           {plan && (
