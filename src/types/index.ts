@@ -11,6 +11,7 @@ export interface Employee {
   id: string;
   fullName: string;
   active: boolean;
+  startDate?: string | null;
   terminationDate?: string | null;
   userId: string;
   businessId?: string | null;

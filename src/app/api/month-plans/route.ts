@@ -31,14 +31,19 @@ export async function POST(req: Request) {
     const existing = await prisma.monthPlan.findFirst({ where: { businessId, month, year } });
     if (existing) return NextResponse.json(existing);
     // Auto-include employees active during this plan month
-    const planMonthEnd = new Date(year, month, 0, 23, 59, 59, 999); // last moment of the plan month (day 0 of next month = last day of plan month)
     const activeEmployees = await prisma.employee.findMany({
-      where: { businessId, active: true, createdAt: { lte: planMonthEnd } },
+      where: { businessId, active: true },
       orderBy: { createdAt: 'asc' },
     });
     const relevantEmployees = activeEmployees.filter(e => {
+      const effectiveStart = e.startDate ? new Date(e.startDate) : new Date(e.createdAt);
+      if (isNaN(effectiveStart.getTime())) return true; // fallback: include if date is invalid
+      const startYear = effectiveStart.getFullYear();
+      const startMonth = effectiveStart.getMonth() + 1;
+      if (startYear > year || (startYear === year && startMonth > month)) return false;
       if (!e.terminationDate) return true;
       const term = new Date(e.terminationDate);
+      if (isNaN(term.getTime())) return true;
       const termYear = term.getFullYear();
       const termMonth = term.getMonth() + 1;
       return termYear > year || (termYear === year && termMonth >= month);

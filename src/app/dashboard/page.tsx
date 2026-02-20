@@ -114,15 +114,19 @@ export default function DashboardPage() {
   // - only show employees who started on or before the plan month
   // - hide employees whose resignation (terminationDate) was before the plan month
   const visibleEmployees = plan ? employees.filter(emp => {
-    const start = new Date(emp.createdAt);
-    const startYear = start.getFullYear();
-    const startMonth = start.getMonth() + 1;
-    if (startYear > plan.year || (startYear === plan.year && startMonth > plan.month)) return false;
+    const effectiveStart = new Date(emp.startDate || emp.createdAt);
+    if (!isNaN(effectiveStart.getTime())) {
+      const startYear = effectiveStart.getFullYear();
+      const startMonth = effectiveStart.getMonth() + 1;
+      if (startYear > plan.year || (startYear === plan.year && startMonth > plan.month)) return false;
+    }
     if (emp.terminationDate) {
       const term = new Date(emp.terminationDate);
-      const termYear = term.getFullYear();
-      const termMonth = term.getMonth() + 1;
-      if (termYear < plan.year || (termYear === plan.year && termMonth < plan.month)) return false;
+      if (!isNaN(term.getTime())) {
+        const termYear = term.getFullYear();
+        const termMonth = term.getMonth() + 1;
+        if (termYear < plan.year || (termYear === plan.year && termMonth < plan.month)) return false;
+      }
     }
     return true;
   }) : employees;

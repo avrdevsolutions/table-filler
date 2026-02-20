@@ -16,6 +16,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     data: {
       fullName: body.fullName ?? emp.fullName,
       active: body.active ?? emp.active,
+      startDate: body.startDate !== undefined ? body.startDate : emp.startDate,
       terminationDate: body.terminationDate !== undefined ? body.terminationDate : emp.terminationDate,
     },
   });

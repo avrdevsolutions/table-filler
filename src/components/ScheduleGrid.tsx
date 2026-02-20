@@ -128,9 +128,17 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
           return coItems.length > 0 ? (
             <div>
               <p className="font-semibold mb-1">Concediu de odihnă:</p>
-              {coItems.map(emp => (
-                <p key={emp.id} className="text-gray-700">{emp.fullName} — {countCO(cellMap[emp.id] ?? {})} zile</p>
-              ))}
+              {coItems.map(emp => {
+                const coDays = Object.entries(cellMap[emp.id] ?? {})
+                  .filter(([, v]) => v === 'CO')
+                  .map(([k]) => Number(k))
+                  .sort((a, b) => a - b);
+                return (
+                  <p key={emp.id} className="text-gray-700">
+                    {emp.fullName} — {coDays.length} zile ({coDays.join(', ')})
+                  </p>
+                );
+              })}
             </div>
           ) : null;
         })()}
