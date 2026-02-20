@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import { getDaysInMonth, getDemisieCells, calcTotal, countCO } from '@/lib/schedule';
+import { getDaysInMonth, getDemisieCells, calcTotal, countCO, formatDateRO } from '@/lib/schedule';
 import type { MonthPlan, Employee, Cell } from '@/types';
 import CalendarPopup from './CalendarPopup';
 import DemisieDialog from './DemisieDialog';
@@ -143,10 +143,9 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
               <p className="font-semibold mb-1">Demisie:</p>
               {demItems.map(emp => {
                 if (!emp.terminationDate) return null;
-                const d = new Date(emp.terminationDate);
                 return (
                   <p key={emp.id} className="text-gray-700">
-                    {emp.fullName} — începând cu {d.getDate().toString().padStart(2,'0')}.{(d.getMonth()+1).toString().padStart(2,'0')}.{d.getFullYear()}
+                    {emp.fullName} — începând cu {formatDateRO(emp.terminationDate)}
                   </p>
                 );
               })}

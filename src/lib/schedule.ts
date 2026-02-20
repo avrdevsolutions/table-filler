@@ -43,3 +43,8 @@ export function calcTotal(cells: Record<number, string>): number {
 export function countCO(cells: Record<number, string>): number {
   return Object.values(cells).filter(v => v === 'CO').length;
 }
+
+export function formatDateRO(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`;
+}

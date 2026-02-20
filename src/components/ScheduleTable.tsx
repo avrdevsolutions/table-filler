@@ -1,4 +1,4 @@
-import { MONTHS_RO, getDaysInMonth, getDemisieCells, calcTotal, countCO } from '@/lib/schedule';
+import { MONTHS_RO, getDaysInMonth, getDemisieCells, calcTotal, countCO, formatDateRO } from '@/lib/schedule';
 import type { MonthPlan, Employee, Cell } from '@/types';
 
 interface Props {
@@ -109,9 +109,8 @@ export default function ScheduleTable({ plan, employees, locationName }: Props) 
               <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Demisie:</div>
               {demisieList.map(emp => {
                 if (!emp.terminationDate) return null;
-                const d = new Date(emp.terminationDate);
                 return (
-                  <div key={emp.id}>{emp.fullName} — începând cu {d.getDate().toString().padStart(2,'0')}.{(d.getMonth()+1).toString().padStart(2,'0')}.{d.getFullYear()}</div>
+                  <div key={emp.id}>{emp.fullName} — începând cu {formatDateRO(emp.terminationDate)}</div>
                 );
               })}
             </div>

@@ -26,7 +26,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetch('/api/employees').then(r => r.json()).then(setEmployees).catch(console.error);
+      fetch('/api/employees').then(r => r.json()).then(setEmployees).catch(() => {
+        alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.');
+      });
     }
   }, [status]);
 
