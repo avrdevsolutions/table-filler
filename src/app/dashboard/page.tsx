@@ -53,7 +53,7 @@ export default function DashboardPage() {
         fetch(`/api/month-plans/${planId}`)
           .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
           .then(full => { setPlan(full); setLoading(false); })
-          .catch(() => { localStorage.removeItem(`lastPlan_${biz!.id}`); setLoading(false); });
+          .catch(() => { localStorage.removeItem(`lastPlan_${biz?.id}`); setLoading(false); });
       }
     } catch {
       // localStorage unavailable or corrupted — ignore
