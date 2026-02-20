@@ -35,58 +35,29 @@ export default function DashboardPage() {
     if (!biz) { router.push('/businesses'); return; }
     setSelectedBusiness(biz);
 
-    // Load employees for this business
-    fetch(`/api/employees?businessId=${biz.id}`).then(r => r.json()).then(setEmployees).catch(() => {
-      alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.');
-    });
-
-    // Auto-restore last opened plan
-    try {
-      const saved = localStorage.getItem(`lastPlan_${biz.id}`);
-      if (saved) {
-        const { planId, month: m, year: y } = JSON.parse(saved);
-        setMonth(m);
-        setYear(y);
-        setLoading(true);
-        fetch(`/api/month-plans/${planId}`)
-          .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
-          .then(full => { setPlan(full); setLoading(false); })
-          .catch(() => { localStorage.removeItem(`lastPlan_${biz?.id}`); setLoading(false); });
-      }
-    } catch {
-      // localStorage unavailable or corrupted — ignore
-    }
+    // Load active employees (active=true; includes employees with a terminationDate) for this business
+    fetch(`/api/employees?businessId=${biz.id}&includeInactive=false`)
+      .then(r => r.json())
+      .then(setEmployees)
+      .catch(() => { alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.'); });
   }, [status, router]);
 
-  async function handleLoad() {
+  // Auto-load plan whenever month, year, or business changes
+  useEffect(() => {
     if (!selectedBusiness) return;
     setLoading(true);
-    try {
-      const res = await fetch('/api/month-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month, year, businessId: selectedBusiness.id }),
-      });
-      const p = await res.json();
-      const fullRes = await fetch(`/api/month-plans/${p.id}`);
-      const full = await fullRes.json();
-      setPlan(full);
-      // Sync employees list from the loaded plan (plan may include employees added since last load)
-      const planEmpIds: string[] = JSON.parse(full.employeeIds || '[]');
-      setEmployees(prev => {
-        const existing = new Set(prev.map(e => e.id));
-        const missing = planEmpIds.filter(id => !existing.has(id));
-        if (missing.length === 0) return prev;
-        // Refetch full list to ensure we have all employees in plan
-        fetch(`/api/employees?businessId=${selectedBusiness.id}`).then(r => r.json()).then(setEmployees).catch(console.error);
-        return prev;
-      });
-      try { localStorage.setItem(`lastPlan_${selectedBusiness.id}`, JSON.stringify({ planId: full.id, month, year })); } catch {}
-    } catch (e) {
-      console.error(e);
-    }
-    setLoading(false);
-  }
+    setPlan(null);
+    fetch('/api/month-plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ month, year, businessId: selectedBusiness.id }),
+    })
+      .then(r => r.json())
+      .then(p => fetch(`/api/month-plans/${p.id}`))
+      .then(r => r.json())
+      .then(full => { setPlan(full); setLoading(false); })
+      .catch(e => { console.error(e); setLoading(false); });
+  }, [month, year, selectedBusiness]);
 
   const handleCellsChange = useCallback((employeeId: string, updates: Record<number, string>) => {
     if (!plan) return;
@@ -139,6 +110,27 @@ export default function DashboardPage() {
     window.open(url, '_blank');
   }
 
+  // Filter employees visible for the current plan month/year:
+  // - only show employees who started on or before the plan month
+  // - hide employees whose resignation (terminationDate) was before the plan month
+  const visibleEmployees = plan ? employees.filter(emp => {
+    const effectiveStart = new Date(emp.startDate || emp.createdAt);
+    if (!isNaN(effectiveStart.getTime())) {
+      const startYear = effectiveStart.getFullYear();
+      const startMonth = effectiveStart.getMonth() + 1;
+      if (startYear > plan.year || (startYear === plan.year && startMonth > plan.month)) return false;
+    }
+    if (emp.terminationDate) {
+      const term = new Date(emp.terminationDate);
+      if (!isNaN(term.getTime())) {
+        const termYear = term.getFullYear();
+        const termMonth = term.getMonth() + 1;
+        if (termYear < plan.year || (termYear === plan.year && termMonth < plan.month)) return false;
+      }
+    }
+    return true;
+  }) : employees;
+
   if (status === 'loading') return <div className="min-h-screen flex items-center justify-center">Se încarcă...</div>;
   if (!session) return null;
 
@@ -171,40 +163,39 @@ export default function DashboardPage() {
           <MonthSelector
             month={month} year={year}
             onMonthChange={setMonth} onYearChange={setYear}
-            onLoad={handleLoad} loading={loading}
           />
-          {plan && (
+          {plan && !loading && (
             <button onClick={handleExport} className="ml-auto bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700">
               📷 Exportă PNG
             </button>
           )}
         </div>
 
-        {plan && (
+        {loading && (
+          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
+            Se încarcă...
+          </div>
+        )}
+
+        {plan && !loading && (
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="font-semibold mb-3 text-gray-700">
               Pontaj {MONTHS_RO[month - 1]} {year}
               <span className="ml-2 text-xs text-gray-400">({getDaysInMonth(year, month)} zile)</span>
             </h2>
-            {JSON.parse(plan.employeeIds || '[]').length === 0 ? (
+            {visibleEmployees.length === 0 ? (
               <p className="text-gray-400 text-sm py-4 text-center">
-                Nu există angajați activi pentru această firmă. Adăugați angajați din pagina firmei.
+                Nu există angajați activi pentru această perioadă. Adăugați angajați din pagina firmei.
               </p>
             ) : (
               <ScheduleGrid
                 plan={plan}
-                employees={employees}
+                employees={visibleEmployees}
                 onCellsChange={handleCellsChange}
                 onEmployeeUpdate={handleEmployeeUpdate}
                 onEmployeeReorder={handleEmployeeReorder}
               />
             )}
-          </div>
-        )}
-
-        {!plan && !loading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">
-            Selectați luna și apăsați &quot;Încarcă / Creează&quot; pentru a începe.
           </div>
         )}
       </main>

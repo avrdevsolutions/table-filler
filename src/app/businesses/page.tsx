@@ -23,6 +23,7 @@ export default function BusinessesPage() {
   const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
   const [bizEmployees, setBizEmployees] = useState<Record<string, Employee[]>>({});
   const [newEmpName, setNewEmpName] = useState('');
+  const [newEmpStartDate, setNewEmpStartDate] = useState('');
   const [addingEmp, setAddingEmp] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function BusinessesPage() {
     } else {
       setExpandedBizId(bizId);
       setNewEmpName('');
+      setNewEmpStartDate('');
       loadEmployees(bizId);
     }
   }
@@ -101,11 +103,12 @@ export default function BusinessesPage() {
     const res = await fetch('/api/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName: newEmpName.trim(), businessId: bizId }),
+      body: JSON.stringify({ fullName: newEmpName.trim(), businessId: bizId, startDate: newEmpStartDate || null }),
     });
     const emp = await res.json();
     setBizEmployees(prev => ({ ...prev, [bizId]: [...(prev[bizId] ?? []), emp] }));
     setNewEmpName('');
+    setNewEmpStartDate('');
     setAddingEmp(false);
   }
 
@@ -268,17 +271,24 @@ export default function BusinessesPage() {
                         <h4 className="font-medium text-gray-700 mb-3 text-sm">Angajați — {biz.name}</h4>
 
                         {/* Add employee form */}
-                        <div className="flex gap-2 mb-3">
-                          <input
-                            type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleAddEmployee(biz.id)}
-                            placeholder="Nume complet angajat nou"
-                            className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
-                          />
-                          <button onClick={() => handleAddEmployee(biz.id)} disabled={addingEmp || !newEmpName.trim()}
-                            className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
-                            {addingEmp ? '...' : '+ Adaugă'}
-                          </button>
+                        <div className="flex flex-col gap-2 mb-3">
+                          <div className="flex gap-2">
+                            <input
+                              type="text" value={newEmpName} onChange={e => setNewEmpName(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && handleAddEmployee(biz.id)}
+                              placeholder="Nume complet angajat nou"
+                              className="border rounded px-3 py-1.5 text-sm flex-1 bg-white"
+                            />
+                            <input
+                              type="date" value={newEmpStartDate} onChange={e => setNewEmpStartDate(e.target.value)}
+                              title="Data angajării"
+                              className="border rounded px-3 py-1.5 text-sm bg-white"
+                            />
+                            <button onClick={() => handleAddEmployee(biz.id)} disabled={addingEmp || !newEmpName.trim()}
+                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 disabled:opacity-50">
+                              {addingEmp ? '...' : '+ Adaugă'}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Employee list */}
@@ -292,6 +302,9 @@ export default function BusinessesPage() {
                                   <span className={emp.active ? 'font-medium text-gray-800' : 'text-gray-500 line-through'}>
                                     {emp.fullName}
                                   </span>
+                                  {emp.startDate && (
+                                    <span className="ml-2 text-xs text-gray-400">din {emp.startDate}</span>
+                                  )}
                                   {emp.terminationDate && (
                                     <span className="ml-2 text-xs text-orange-600">Demisie</span>
                                   )}

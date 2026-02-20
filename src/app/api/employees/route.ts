@@ -25,12 +25,12 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Neautorizat' }, { status: 401 });
   const userId = (session.user as { id: string }).id;
-  const { fullName, businessId } = await req.json();
+  const { fullName, businessId, startDate } = await req.json();
   if (!fullName) return NextResponse.json({ error: 'Nume obligatoriu' }, { status: 400 });
   if (businessId) {
     const biz = await prisma.business.findFirst({ where: { id: businessId, ownerUserId: userId } });
     if (!biz) return NextResponse.json({ error: 'Firma nu există' }, { status: 404 });
   }
-  const emp = await prisma.employee.create({ data: { fullName, userId, businessId: businessId ?? null } });
+  const emp = await prisma.employee.create({ data: { fullName, userId, businessId: businessId ?? null, startDate: startDate ?? null } });
   return NextResponse.json(emp);
 }
