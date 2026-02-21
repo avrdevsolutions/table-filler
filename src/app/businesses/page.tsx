@@ -469,7 +469,19 @@ export default function BusinessesPage() {
     if (status !== 'authenticated') return;
     fetch('/api/businesses')
       .then(r => r.json())
-      .then(data => { setBusinesses(data); setLoading(false); })
+      .then(data => {
+        setBusinesses(data);
+        setLoading(false);
+        // Pre-load employee counts for all businesses
+        if (Array.isArray(data)) {
+          data.forEach((biz: Business) => {
+            fetch(`/api/employees?businessId=${biz.id}&includeInactive=true`)
+              .then(r => r.json())
+              .then(emps => { if (Array.isArray(emps)) setBizEmployees(prev => ({ ...prev, [biz.id]: emps })); })
+              .catch(() => {});
+          });
+        }
+      })
       .catch(() => setLoading(false));
   }, [status]);
 
@@ -741,17 +753,10 @@ export default function BusinessesPage() {
             {businesses.map(biz => (
               <div key={biz.id} className="card overflow-hidden">
 
-                {/* Business card main row — entire row is tappable to open */}
+                {/* Business card main row */}
                 <div
                   className="p-5 flex items-center gap-4"
-                  style={{ cursor: 'pointer', transition: 'background 150ms ease' }}
-                  onClick={() => handleSelect(biz)}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => e.key === 'Enter' && handleSelect(biz)}
-                  aria-label={`Deschide firma ${biz.name}`}
+                  style={{ transition: 'background 150ms ease' }}
                 >
                   {/* Icon */}
                   <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl"
@@ -779,20 +784,30 @@ export default function BusinessesPage() {
                     )}
                   </div>
 
-                  {/* Employees toggle + overflow menu */}
-                  <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleSelect(biz)}
+                      className="flex items-center gap-1.5 rounded-xl text-sm font-semibold transition-colors duration-150"
+                      style={{ padding: '7px 14px', background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      Deschide pontajul
+                    </button>
                     <button
                       onClick={() => toggleExpand(biz.id)}
-                      className="flex items-center justify-center rounded-xl transition-colors duration-150"
-                      style={{ width: 36, height: 36, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                      className="flex items-center gap-1.5 rounded-xl transition-colors duration-150"
+                      style={{ padding: '7px 12px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}
                       title="Angajați"
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
                       </svg>
+                      <span className="hidden sm:inline">Angajați</span>
                     </button>
                     <OverflowMenu
                       onEdit={() => setEditBiz(biz)}

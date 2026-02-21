@@ -1,4 +1,4 @@
-import { getDemisieCells, calcTotal, countCO, getDaysInMonth } from '@/lib/schedule';
+import { getDemisieCells, calcTotal, countCO, countCM, getDaysInMonth } from '@/lib/schedule';
 
 describe('getDaysInMonth', () => {
   it('returns 31 for January', () => expect(getDaysInMonth(2024, 1)).toBe(31));
@@ -44,5 +44,20 @@ describe('calcTotal', () => {
 describe('countCO', () => {
   it('counts CO cells', () => {
     expect(countCO({ 1: 'CO', 2: 'CO', 3: '24' })).toBe(2);
+  });
+  it('does not count CM cells', () => {
+    expect(countCO({ 1: 'CO', 2: 'CM', 3: 'CO' })).toBe(2);
+  });
+});
+
+describe('countCM', () => {
+  it('counts CM cells', () => {
+    expect(countCM({ 1: 'CM', 2: 'CM', 3: '24' })).toBe(2);
+  });
+  it('does not count CO cells', () => {
+    expect(countCM({ 1: 'CO', 2: 'CM', 3: 'CM' })).toBe(2);
+  });
+  it('returns 0 for empty', () => {
+    expect(countCM({})).toBe(0);
   });
 });

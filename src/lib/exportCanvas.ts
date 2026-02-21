@@ -8,6 +8,7 @@ import {
   getDemisieCells,
   calcTotal,
   countCO,
+  countCM,
   formatDateRO,
   MONTHS_RO,
 } from './schedule';
@@ -36,8 +37,9 @@ export function buildSchedulePNG(
     .filter(Boolean) as Employee[];
 
   const coList = orderedEmployees.filter(emp => countCO(cellMap[emp.id] ?? {}) > 0);
+  const cmList = orderedEmployees.filter(emp => countCM(cellMap[emp.id] ?? {}) > 0);
   const demisieList = orderedEmployees.filter(emp => emp.terminationDate);
-  const HAS_FOOTNOTES = coList.length > 0 || demisieList.length > 0;
+  const HAS_FOOTNOTES = coList.length > 0 || cmList.length > 0 || demisieList.length > 0;
 
   function getDow(day: number): string {
     return ['D', 'L', 'M', 'Mi', 'J', 'V', 'S'][new Date(year, month - 1, day).getDay()];
@@ -67,7 +69,7 @@ export function buildSchedulePNG(
   const TITLE_LINE_H = 20;
   const TITLE_H = titleItems.length * TITLE_LINE_H + 8;
 
-  const maxFootLines = Math.max(coList.length, demisieList.length);
+  const maxFootLines = Math.max(coList.length, cmList.length, demisieList.length);
   const FOOTNOTE_H = HAS_FOOTNOTES ? 18 + maxFootLines * 16 + 10 : 0;
 
   const tableW = NR_W + NAME_W + days * DAY_W + TOTAL_W;
@@ -190,6 +192,7 @@ export function buildSchedulePNG(
       drawCell(rx, ry, DAY_W, ROW_H, bg);
       if (val) {
         const color = val === 'CO' ? '#065f46'
+          : val === 'CM' ? '#92400e'
           : val === 'X'  ? '#dc2626'
           : isDem        ? '#374151'
           : '#111827';
@@ -208,32 +211,50 @@ export function buildSchedulePNG(
   // ── Footnotes ───────────────────────────────────────────────────────────────
   if (HAS_FOOTNOTES) {
     const fy = tableY + tableH + 14;
-    const midX = tableX + tableW / 2;
+    const sections: { label: string; items: { name: string; days: number[]; }[] }[] = [];
 
     if (coList.length > 0) {
-      drawText('Concediu de odihnă:', tableX, fy + 12, 'left', '#111', `bold 11px ${FONT}`);
-      coList.forEach((emp, i) => {
-        const coDays = Object.entries(cellMap[emp.id] ?? {})
-          .filter(([, v]) => v === 'CO')
-          .map(([k]) => Number(k))
-          .sort((a, b) => a - b);
-        drawText(
-          `${emp.fullName} = ${coDays.length} zile (${coDays.join(', ')})`,
-          tableX, fy + 26 + i * 15, 'left', '#333', `10px ${FONT}`,
-        );
+      sections.push({
+        label: 'Concediu de odihnă:',
+        items: coList.map(emp => ({
+          name: emp.fullName,
+          days: Object.entries(cellMap[emp.id] ?? {})
+            .filter(([, v]) => v === 'CO').map(([k]) => Number(k)).sort((a, b) => a - b),
+        })),
+      });
+    }
+
+    if (cmList.length > 0) {
+      sections.push({
+        label: 'Concediu medical:',
+        items: cmList.map(emp => ({
+          name: emp.fullName,
+          days: Object.entries(cellMap[emp.id] ?? {})
+            .filter(([, v]) => v === 'CM').map(([k]) => Number(k)).sort((a, b) => a - b),
+        })),
       });
     }
 
     if (demisieList.length > 0) {
-      drawText('Demisie:', midX, fy + 12, 'left', '#111', `bold 11px ${FONT}`);
-      demisieList.forEach((emp, i) => {
-        if (!emp.terminationDate) return;
-        drawText(
-          `${emp.fullName} — începând cu ${formatDateRO(emp.terminationDate)}`,
-          midX, fy + 26 + i * 15, 'left', '#333', `10px ${FONT}`,
-        );
+      sections.push({
+        label: 'Demisie:',
+        items: demisieList
+          .filter(emp => !!emp.terminationDate)
+          .map(emp => ({ name: emp.fullName, days: [], terminationDate: emp.terminationDate! })),
       });
     }
+
+    const colW = sections.length > 0 ? tableW / sections.length : tableW;
+    sections.forEach((section, colIdx) => {
+      const sx = tableX + colIdx * colW;
+      drawText(section.label, sx, fy + 12, 'left', '#111', `bold 11px ${FONT}`);
+      section.items.forEach((item, i) => {
+        const text = 'terminationDate' in item
+          ? `${item.name} — începând cu ${formatDateRO((item as { terminationDate: string }).terminationDate)}`
+          : `${item.name} = ${item.days.length} zile (${item.days.join(', ')})`;
+        drawText(text, sx, fy + 26 + i * 15, 'left', '#333', `10px ${FONT}`);
+      });
+    });
   }
 
   return canvas.toDataURL('image/png');
