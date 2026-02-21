@@ -8,11 +8,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  function validate(): boolean {
+    const errs: { email?: string; password?: string } = {};
+    if (!email) errs.email = 'Emailul este obligatoriu.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Format email invalid.';
+    if (!password) errs.password = 'Parola este obligatorie.';
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
     setError('');
     const res = await signIn('credentials', { email, password, redirect: false });
@@ -22,11 +33,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4">
       {/* Logo / App name */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-          style={{ background: 'var(--accent)', boxShadow: '0 8px 24px rgba(0,113,227,0.35)' }}>
+          style={{ background: 'var(--accent)', boxShadow: '0 8px 24px rgba(10,132,255,0.35)' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/>
@@ -58,20 +69,36 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label className="form-label">Email</label>
             <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              className="form-input" placeholder="adresa@email.com" required
+              type="email" value={email}
+              onChange={e => { setEmail(e.target.value); if (fieldErrors.email) setFieldErrors(p => ({ ...p, email: undefined })); }}
+              className="form-input" placeholder="adresa@email.com"
+              style={fieldErrors.email ? { borderColor: 'var(--danger)' } : {}}
             />
+            {fieldErrors.email && (
+              <p className="field-error">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {fieldErrors.email}
+              </p>
+            )}
           </div>
           <div>
             <label className="form-label">Parolă</label>
             <input
-              type="password" value={password} onChange={e => setPassword(e.target.value)}
-              className="form-input" placeholder="••••••••" required
+              type="password" value={password}
+              onChange={e => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors(p => ({ ...p, password: undefined })); }}
+              className="form-input" placeholder="••••••••"
+              style={fieldErrors.password ? { borderColor: 'var(--danger)' } : {}}
             />
+            {fieldErrors.password && (
+              <p className="field-error">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {fieldErrors.password}
+              </p>
+            )}
           </div>
           <button type="submit" disabled={loading} className="btn-primary w-full justify-center mt-2">
             {loading ? (
