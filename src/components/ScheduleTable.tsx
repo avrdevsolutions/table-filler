@@ -37,52 +37,60 @@ export default function ScheduleTable({ plan, employees, locationName, businessN
 
   // ── Auto-sizing layout ──────────────────────────────────────────────────────
   const PAD = 20;
+  const NR_COL = 34;            // POST NR column
   const NAME_COL = 190;
   const TOTAL_COL = 66;
-  const DAY_COL_W = 34;         // per day column
-  const ROW_H = 34;
-  const HEADER_H = 46;
+  const DAY_COL_W = 34;
+  const ROW_H = 30;
+  const HEADER_H = 44;
   const fontSize = 11;
   const HAS_FOOTNOTES = coList.length > 0 || demisieList.length > 0;
-  // Total table width: fits all days
-  const tableW = NAME_COL + days * DAY_COL_W + TOTAL_COL;
+  const tableW = NR_COL + NAME_COL + days * DAY_COL_W + TOTAL_COL;
+  const outerW = tableW + PAD * 2;
+
+  const borderStrong = '1px solid #444';
+  const borderLight = '1px solid #bbb';
+  const borderCell = '1px solid #ccc';
 
   return (
     <div style={{
       display: 'inline-block',
-      width: tableW + PAD * 2,
+      width: outerW,
       backgroundColor: 'white',
       padding: PAD,
       fontFamily: 'Arial, Helvetica, sans-serif',
       boxSizing: 'border-box',
     }}>
       {/* ── Title block ── */}
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        marginBottom: 10,
-      }}>
+      <div style={{ marginBottom: 10 }}>
+        {/* Business name – left aligned like the Excel original */}
         {businessName && (
-          <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 2, color: '#1e3a8a' }}>
+          <div style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, color: '#111' }}>
             {businessName}
           </div>
         )}
-        <div style={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 2 }}>
-          PLANIFICAREA SERVICIILOR
-        </div>
-        <div style={{ fontSize: 12, marginTop: 3 }}>
-          pe luna <strong>{MONTHS_RO[month - 1]}</strong> {year}
-        </div>
-        {(locationName || plan.locationName) && (
-          <div style={{ fontSize: 11, marginTop: 2, color: '#555' }}>
-            {locationName || plan.locationName}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 'bold', letterSpacing: 2 }}>
+            PLANIFICAREA SERVICIILOR
           </div>
-        )}
+          <div style={{ fontSize: 12, marginTop: 3 }}>
+            pe luna{' '}
+            <span style={{ fontWeight: 'bold', textDecoration: 'underline' }}>
+              {MONTHS_RO[month - 1]} {year}
+            </span>
+          </div>
+          {(locationName || plan.locationName) && (
+            <div style={{ fontSize: 12, marginTop: 2, fontWeight: 'bold' }}>
+              {locationName || plan.locationName}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Schedule table ── */}
       <table style={{ width: tableW, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>
+          <col style={{ width: NR_COL }} />
           <col style={{ width: NAME_COL }} />
           {daysArr.map(d => <col key={d} style={{ width: DAY_COL_W }} />)}
           <col style={{ width: TOTAL_COL }} />
@@ -90,13 +98,18 @@ export default function ScheduleTable({ plan, employees, locationName, businessN
         <thead>
           <tr style={{ height: HEADER_H }}>
             <th style={{
-              border: '1px solid #444', padding: '3px 6px',
+              border: borderStrong, padding: '2px 4px',
+              textAlign: 'center', backgroundColor: '#d1d5db',
+              fontSize: 9, fontWeight: 'bold',
+            }}>POST<br/>NR</th>
+            <th style={{
+              border: borderStrong, padding: '3px 6px',
               textAlign: 'left', backgroundColor: '#d1d5db',
               fontSize: 11, fontWeight: 'bold',
-            }}>Angajat</th>
+            }}>Numele și prenumele</th>
             {daysArr.map(d => (
               <th key={d} style={{
-                border: '1px solid #444', padding: '2px 1px', textAlign: 'center',
+                border: borderStrong, padding: '2px 1px', textAlign: 'center',
                 backgroundColor: isWeekend(d) ? '#fbbf24' : '#d1d5db',
                 fontSize: 9,
               }}>
@@ -105,7 +118,7 @@ export default function ScheduleTable({ plan, employees, locationName, businessN
               </th>
             ))}
             <th style={{
-              border: '1px solid #444', padding: '2px 3px',
+              border: borderStrong, padding: '2px 3px',
               textAlign: 'center', backgroundColor: '#d1d5db',
               fontSize: 10, fontWeight: 'bold',
             }}>TOTAL</th>
@@ -123,19 +136,28 @@ export default function ScheduleTable({ plan, employees, locationName, businessN
                 height: ROW_H,
                 backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f3f4f6',
               }}>
+                {/* POST NR */}
                 <td style={{
-                  border: '1px solid #bbb', padding: '2px 6px',
+                  border: borderLight, textAlign: 'center',
+                  fontSize, verticalAlign: 'middle',
+                  fontWeight: 600,
+                }}>{idx + 1}</td>
+
+                {/* Name */}
+                <td style={{
+                  border: borderLight, padding: '2px 6px',
                   fontWeight: 600, fontSize,
                   overflow: 'hidden', whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                 }}>{emp.fullName}</td>
 
+                {/* Day cells */}
                 {daysArr.map(d => {
                   const val = demisie[d] || cells[d] || '';
                   const isDem = !!demisie[d];
                   return (
                     <td key={d} style={{
-                      border: '1px solid #ccc', textAlign: 'center', fontSize,
+                      border: borderCell, textAlign: 'center', fontSize,
                       verticalAlign: 'middle',
                       backgroundColor: isDem ? '#9ca3af' : isWeekend(d) ? '#fef3c7' : undefined,
                       color: val === 'CO' ? '#065f46'
@@ -147,8 +169,9 @@ export default function ScheduleTable({ plan, employees, locationName, businessN
                   );
                 })}
 
+                {/* Total */}
                 <td style={{
-                  border: '1px solid #bbb', textAlign: 'center',
+                  border: borderLight, textAlign: 'center',
                   fontWeight: 'bold', fontSize: fontSize + 1,
                   verticalAlign: 'middle',
                   color: total ? '#1e3a8a' : '#e5e7eb',
@@ -161,17 +184,23 @@ export default function ScheduleTable({ plan, employees, locationName, businessN
 
       {/* ── Footnotes ── */}
       {HAS_FOOTNOTES && (
-        <div style={{ marginTop: 10, display: 'flex', gap: 48, fontSize: 11 }}>
+        <div style={{ marginTop: 10, display: 'flex', gap: 60, fontSize: 11 }}>
           {coList.length > 0 && (
             <div>
               <div style={{ fontWeight: 'bold', marginBottom: 3, fontSize: 12 }}>
                 Concediu de odihnă:
               </div>
-              {coList.map(emp => (
-                <div key={emp.id} style={{ marginBottom: 2 }}>
-                  {emp.fullName} — {countCO(cellMap[emp.id] ?? {})} zile
-                </div>
-              ))}
+              {coList.map(emp => {
+                const coDays = Object.entries(cellMap[emp.id] ?? {})
+                  .filter(([, v]) => v === 'CO')
+                  .map(([k]) => Number(k))
+                  .sort((a, b) => a - b);
+                return (
+                  <div key={emp.id} style={{ marginBottom: 2 }}>
+                    {emp.fullName} — {coDays.length} zile ({coDays.join(', ')})
+                  </div>
+                );
+              })}
             </div>
           )}
           {demisieList.length > 0 && (

@@ -102,14 +102,24 @@ export default function DashboardPage() {
   async function handleExport() {
     if (!plan || !exportRef.current) return;
     setExporting(true);
+    const container = exportRef.current;
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(exportRef.current, {
+      // Move into the viewport so html2canvas can find and render it
+      container.style.top = '0';
+      container.style.left = '0';
+      // Wait two animation frames for the browser to repaint before capturing
+      await new Promise(r => requestAnimationFrame(r));
+      await new Promise(r => requestAnimationFrame(r));
+      const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
       });
+      // Restore off-screen position (React prop sets these, so set explicitly)
+      container.style.top = '-9999px';
+      container.style.left = '-9999px';
       const link = document.createElement('a');
       const monthName = MONTHS_RO[month - 1].toLowerCase();
       link.download = `pontaj-${monthName}-${year}.png`;
@@ -117,6 +127,8 @@ export default function DashboardPage() {
       link.click();
     } catch (e) {
       console.error(e);
+      container.style.top = '-9999px';
+      container.style.left = '-9999px';
       alert('Eroare la export');
     }
     setExporting(false);
@@ -289,14 +301,20 @@ export default function DashboardPage() {
 
         {/* Hidden export target — auto-sized ScheduleTable captured by html2canvas */}
         {plan && visibleEmployees.length > 0 && (
-          <div style={{ position: 'fixed', top: '-9999px', left: '-9999px', zIndex: -1 }}>
-            <div ref={exportRef}>
-              <ScheduleTable
-                plan={plan}
-                employees={visibleEmployees}
-                businessName={selectedBusiness?.name}
-              />
-            </div>
+          <div
+            ref={exportRef}
+            style={{
+              position: 'fixed',
+              top: '-9999px',
+              left: '-9999px',
+            }}
+          >
+            <ScheduleTable
+              plan={plan}
+              employees={visibleEmployees}
+              businessName={selectedBusiness?.name}
+              locationName={selectedBusiness?.locationName}
+            />
           </div>
         )}
       </main>
