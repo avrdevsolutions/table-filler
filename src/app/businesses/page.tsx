@@ -549,6 +549,7 @@ export default function BusinessesPage() {
   const [empStartDateError, setEmpStartDateError] = useState('');
   const [addingEmp, setAddingEmp] = useState(false);
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showAddEmpModal, setShowAddEmpModal] = useState(false);
 
   // Employee details modal
   const [detailsEmployee, setDetailsEmployee] = useState<{ emp: Employee; bizId: string } | null>(null);
@@ -598,8 +599,16 @@ export default function BusinessesPage() {
       setNewEmpName(''); setNewEmpStartDate('');
       setEmpNameError(''); setEmpStartDateError('');
       setShowStartDatePicker(false);
+      setShowAddEmpModal(false);
       loadEmployees(bizId);
     }
+  }
+
+  function openAddEmpModal() {
+    setNewEmpName(''); setNewEmpStartDate('');
+    setEmpNameError(''); setEmpStartDateError('');
+    setShowStartDatePicker(false);
+    setShowAddEmpModal(true);
   }
 
   async function handleCreate(name: string, location: string) {
@@ -665,6 +674,7 @@ export default function BusinessesPage() {
     setNewEmpName(''); setNewEmpStartDate('');
     setEmpNameError(''); setEmpStartDateError('');
     setAddingEmp(false);
+    setShowAddEmpModal(false);
     showToast(`${emp.fullName} a fost adăugat cu succes.`);
   }
 
@@ -750,6 +760,77 @@ export default function BusinessesPage() {
           onRemoveDemisie={handleRemoveDemisie}
           onEmployeeUpdate={handleEmployeeUpdate}
         />
+      )}
+
+      {/* Add Employee modal */}
+      {showAddEmpModal && expandedBizId && (
+        <div className="modal-overlay" onClick={() => setShowAddEmpModal(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <h3 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>Adaugă angajat</h3>
+              <button
+                onClick={() => setShowAddEmpModal(false)}
+                className="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
+                style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="form-label">Nume și prenume <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <input
+                  type="text" value={newEmpName}
+                  onChange={e => { setNewEmpName(e.target.value); if (empNameError) setEmpNameError(''); }}
+                  placeholder="ex: Ion Popescu"
+                  className="form-input"
+                  style={empNameError ? { borderColor: 'var(--danger)' } : {}}
+                  autoFocus
+                />
+                {empNameError && <p className="field-error">{empNameError}</p>}
+              </div>
+              <div>
+                <label className="form-label">Data angajării <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <button
+                  onClick={() => setShowStartDatePicker(true)}
+                  className="form-input flex items-center justify-between"
+                  style={{ cursor: 'pointer', textAlign: 'left', ...(empStartDateError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}) }}
+                >
+                  <span style={{ color: newEmpStartDate ? 'var(--text-primary)' : 'var(--text-secondary)', opacity: newEmpStartDate ? 1 : 0.65 }}>
+                    {newEmpStartDate ? fmtDate(newEmpStartDate) : 'Selectează data angajării'}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </button>
+                {empStartDateError && <p className="field-error">{empStartDateError}</p>}
+                {showStartDatePicker && (
+                  <DatePickerModal
+                    value={newEmpStartDate}
+                    onSelect={date => { setNewEmpStartDate(date); setEmpStartDateError(''); }}
+                    onClose={() => setShowStartDatePicker(false)}
+                  />
+                )}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => handleAddEmployee(expandedBizId)}
+                  disabled={addingEmp}
+                  className="btn-primary flex-1 justify-center"
+                >
+                  {addingEmp ? 'Se adaugă…' : '+ Adaugă angajat'}
+                </button>
+                <button onClick={() => setShowAddEmpModal(false)} className="btn-ghost">Anulează</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete confirmation modal */}
@@ -930,84 +1011,55 @@ export default function BusinessesPage() {
                       <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>
                         Angajați — {biz.name}
                       </p>
-                      <button
-                        onClick={() => setExpandedBizId(null)}
-                        className="flex items-center gap-1.5 rounded-xl transition-colors duration-150"
-                        style={{ padding: '6px 12px', minHeight: 36, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-elevated)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                        Închide
-                      </button>
-                    </div>
-
-                    {/* Add employee */}
-                    <div className="flex flex-col gap-3 mb-5 p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}>
-                      <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Adaugă angajat nou</p>
-                      <div className="flex flex-col gap-3">
-                        <div>
-                          <label className="form-label">
-                            Nume complet <span style={{ color: 'var(--danger)' }}>*</span>
-                          </label>
-                          <input
-                            type="text" value={newEmpName}
-                            onChange={e => { setNewEmpName(e.target.value); if (empNameError) setEmpNameError(''); }}
-                            placeholder="ex: Ion Popescu"
-                            className="form-input"
-                            style={empNameError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}}
-                          />
-                          {empNameError && <p className="field-error">{empNameError}</p>}
-                        </div>
-                        <div>
-                          <label className="form-label">
-                            Data angajării <span style={{ color: 'var(--danger)' }}>*</span>
-                          </label>
-                          <button
-                            onClick={() => setShowStartDatePicker(true)}
-                            className="form-input flex items-center justify-between"
-                            style={{
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              ...(empStartDateError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}),
-                            }}
-                          >
-                            <span style={{ color: newEmpStartDate ? 'var(--text-primary)' : 'var(--text-secondary)', opacity: newEmpStartDate ? 1 : 0.65 }}>
-                              {newEmpStartDate ? fmtDate(newEmpStartDate) : 'Selectează data angajării'}
-                            </span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
-                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                              <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
-                          </button>
-                          {empStartDateError && <p className="field-error">{empStartDateError}</p>}
-                          {showStartDatePicker && (
-                            <DatePickerModal
-                              value={newEmpStartDate}
-                              onSelect={date => { setNewEmpStartDate(date); setEmpStartDateError(''); }}
-                              onClose={() => setShowStartDatePicker(false)}
-                            />
-                          )}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={openAddEmpModal}
+                          className="flex items-center gap-1.5 rounded-xl transition-colors duration-150"
+                          style={{ padding: '6px 12px', minHeight: 36, background: 'var(--accent)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                          Adaugă
+                        </button>
+                        <button
+                          onClick={() => setExpandedBizId(null)}
+                          className="flex items-center gap-1.5 rounded-xl transition-colors duration-150"
+                          style={{ padding: '6px 12px', minHeight: 36, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500 }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-elevated)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                          Închide
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleAddEmployee(biz.id)}
-                        disabled={addingEmp}
-                        className="btn-primary"
-                        style={{ alignSelf: 'flex-start' }}
-                      >
-                        {addingEmp ? 'Se adaugă…' : '+ Adaugă angajat'}
-                      </button>
                     </div>
 
-                    {/* Employee list */}
+                    {/* Employee list or empty state */}
                     {(bizEmployees[biz.id] ?? []).length === 0 ? (
-                      <p className="text-sm text-center py-4" style={{ color: 'var(--text-tertiary)' }}>
-                        Niciun angajat adăugat.
-                      </p>
+                      <div className="flex flex-col items-center py-8 gap-3">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-2xl"
+                          style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                          </svg>
+                        </div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Niciun angajat adăugat</p>
+                        <button
+                          onClick={openAddEmpModal}
+                          className="btn-primary"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                          Adaugă primul angajat
+                        </button>
+                      </div>
                     ) : (
                       <div className="flex flex-col gap-1.5">
                         {(bizEmployees[biz.id] ?? []).map(emp => {
