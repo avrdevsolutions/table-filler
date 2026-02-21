@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback, useMemo } from 'react';
-import { getDaysInMonth, getDemisieCells, calcTotal, countCO, formatDateRO } from '@/lib/schedule';
+import { getDaysInMonth, getDemisieCells, calcTotal, countCO, countCM, formatDateRO } from '@/lib/schedule';
 import type { MonthPlan, Employee, Cell } from '@/types';
 import CalendarPopup from './CalendarPopup';
 import DemisieDialog from './DemisieDialog';
@@ -13,13 +13,14 @@ interface Props {
   onEmployeeReorder: (ids: string[]) => void;
 }
 
-type PopupMode = 'ZL' | 'CO' | 'X';
+type PopupMode = 'ZL' | 'CO' | 'CM' | 'X';
 interface ActivePopup { employeeId: string; mode: PopupMode; }
 interface ActiveDemisie { employeeId: string; }
 
 const cellValueStyle: Record<string, React.CSSProperties> = {
   '24': { color: 'var(--accent)', fontWeight: 700 },
   'CO': { color: 'var(--success)', fontWeight: 700 },
+  'CM': { color: '#f59e0b', fontWeight: 700 },
   'X':  { color: 'var(--danger)', fontWeight: 700 },
   'D':  { color: '#6e6e73', fontWeight: 600 },
   'E':  { color: '#6e6e73', fontWeight: 600 },
@@ -31,6 +32,7 @@ const cellValueStyle: Record<string, React.CSSProperties> = {
 const cellBg: Record<string, string> = {
   '24': 'rgba(10,132,255,0.11)',
   'CO': 'rgba(50,215,75,0.11)',
+  'CM': 'rgba(245,158,11,0.11)',
   'X':  'rgba(255,69,58,0.11)',
   'D':  'rgba(110,110,115,0.07)',
   'E':  'rgba(110,110,115,0.07)',
@@ -76,6 +78,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
     const current = cells[day] ?? '';
     if (mode === 'ZL') cells[day] = current === '24' ? '' : '24';
     else if (mode === 'CO') cells[day] = current === 'CO' ? '' : 'CO';
+    else if (mode === 'CM') cells[day] = current === 'CM' ? '' : 'CM';
     else if (mode === 'X') cells[day] = current === 'X' ? '' : 'X';
     onCellsChange(employeeId, { [day]: cells[day] });
   }, [cellMap, onCellsChange]);
@@ -226,6 +229,13 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                             onMouseLeave={e => (e.currentTarget.style.background = 'rgba(50,215,75,0.13)')}
                           >CO</button>
                           <button
+                            onClick={() => setPopup({ employeeId: emp.id, mode: 'CM' })}
+                            title="Concediu medical"
+                            style={{ background: 'rgba(245,158,11,0.13)', color: '#f59e0b', padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700, border: 'none', cursor: 'pointer', outline: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(245,158,11,0.24)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(245,158,11,0.13)')}
+                          >CM</button>
+                          <button
                             onClick={() => setPopup({ employeeId: emp.id, mode: 'X' })}
                             style={{ background: 'rgba(255,69,58,0.13)', color: 'var(--danger)', padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700, border: 'none', cursor: 'pointer', outline: 'none' }}
                             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,69,58,0.24)')}
@@ -288,8 +298,9 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
       {/* ── Footnotes ── */}
       {(() => {
         const coItems = orderedEmployees.filter(emp => countCO(cellMap[emp.id] ?? {}) > 0);
+        const cmItems = orderedEmployees.filter(emp => countCM(cellMap[emp.id] ?? {}) > 0);
         const demItems = orderedEmployees.filter(emp => emp.terminationDate);
-        if (coItems.length === 0 && demItems.length === 0) return null;
+        if (coItems.length === 0 && cmItems.length === 0 && demItems.length === 0) return null;
         return (
           <div style={{
             marginTop: 0,
@@ -311,6 +322,25 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                     <p key={emp.id} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 3 }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{emp.fullName}</span>
                       {' — '}{coDays.length} zile ({coDays.join(', ')})
+                    </p>
+                  );
+                })}
+              </div>
+            )}
+            {cmItems.length > 0 && (
+              <div>
+                <p style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: 6 }}>
+                  Concediu medical:
+                </p>
+                {cmItems.map(emp => {
+                  const cmDays = Object.entries(cellMap[emp.id] ?? {})
+                    .filter(([, v]) => v === 'CM')
+                    .map(([k]) => Number(k))
+                    .sort((a, b) => a - b);
+                  return (
+                    <p key={emp.id} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 3 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{emp.fullName}</span>
+                      {' — '}{cmDays.length} zile ({cmDays.join(', ')})
                     </p>
                   );
                 })}

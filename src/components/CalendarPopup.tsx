@@ -4,7 +4,7 @@ import { getDaysInMonth } from '@/lib/schedule';
 interface Props {
   year: number;
   month: number;
-  mode: 'ZL' | 'CO' | 'X';
+  mode: 'ZL' | 'CO' | 'CM' | 'X';
   currentCells: Record<number, string>;
   demisieDays: Record<number, string>;
   onToggle: (day: number) => void;
@@ -15,6 +15,7 @@ interface Props {
 const modeConfig = {
   ZL: { label: 'Zile lucrătoare', color: '#0071e3', bg: '#e8f3ff', selectedBg: '#0071e3' },
   CO: { label: 'Concediu de odihnă', color: '#1a7f3c', bg: '#dcf5e4', selectedBg: '#30d158' },
+  CM: { label: 'Concediu medical', color: '#b45309', bg: '#fff7ed', selectedBg: '#f59e0b' },
   X:  { label: 'Liber / Absență', color: '#c2410c', bg: '#fff0eb', selectedBg: '#ff6b35' },
 };
 
@@ -31,6 +32,7 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
     if (demisieDays[day]) return { selected: false, otherMode: false, demisie: true };
     if (mode === 'ZL' && val === '24') return { selected: true, otherMode: false, demisie: false };
     if (mode === 'CO' && val === 'CO') return { selected: true, otherMode: false, demisie: false };
+    if (mode === 'CM' && val === 'CM') return { selected: true, otherMode: false, demisie: false };
     if (mode === 'X' && val === 'X') return { selected: true, otherMode: false, demisie: false };
     if (val !== '') return { selected: false, otherMode: true, demisie: false };
     return { selected: false, otherMode: false, demisie: false };
