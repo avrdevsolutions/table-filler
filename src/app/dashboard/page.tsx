@@ -122,6 +122,93 @@ function QuickAddEmployeeModal({
   );
 }
 
+/* ── Create Business modal (inline in dashboard) ────── */
+function CreateBizModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (biz: Business) => void;
+}) {
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    let valid = true;
+    if (!name.trim()) { setNameError('Numele firmei este obligatoriu.'); valid = false; }
+    else setNameError('');
+    if (!location.trim()) { setLocationError('Locația este obligatorie.'); valid = false; }
+    else setLocationError('');
+    if (!valid) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), locationName: location.trim() }),
+      });
+      if (!res.ok) { setNameError('Eroare la crearea firmei. Încearcă din nou.'); setSaving(false); return; }
+      const biz = await res.json();
+      onCreated(biz);
+    } catch {
+      setNameError('Eroare la crearea firmei. Încearcă din nou.');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <h3 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>Adaugă firmă nouă</h3>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
+            style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div className="p-6 flex flex-col gap-4">
+          <div>
+            <label className="form-label">Numele firmei <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input
+              type="text" value={name}
+              onChange={e => { setName(e.target.value); if (nameError) setNameError(''); }}
+              className="form-input" placeholder="ex: SC Exemplu SRL"
+              style={nameError ? { borderColor: 'var(--danger)' } : {}}
+            />
+            {nameError && <p className="field-error">{nameError}</p>}
+          </div>
+          <div>
+            <label className="form-label">Locație <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input
+              type="text" value={location}
+              onChange={e => { setLocation(e.target.value); if (locationError) setLocationError(''); }}
+              className="form-input" placeholder="ex: Ansamblul Petrila"
+              style={locationError ? { borderColor: 'var(--danger)' } : {}}
+            />
+            {locationError && <p className="field-error">{locationError}</p>}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center">
+              {saving ? 'Se salvează…' : 'Adaugă firmă'}
+            </button>
+            <button onClick={onClose} className="btn-ghost">Anulează</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -137,6 +224,7 @@ export default function DashboardPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [showBizPicker, setShowBizPicker] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showCreateBiz, setShowCreateBiz] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const bizPickerRef = useRef<HTMLDivElement>(null);
 
@@ -318,6 +406,20 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Create Business modal */}
+      {showCreateBiz && (
+        <CreateBizModal
+          onClose={() => setShowCreateBiz(false)}
+          onCreated={biz => {
+            setBusinesses(prev => [...prev, biz]);
+            setShowCreateBiz(false);
+            selectBusiness(biz);
+            setToast(`Firma "${biz.name}" a fost adăugată.`);
+            setTimeout(() => setToast(null), 2800);
+          }}
+        />
+      )}
+
       {/* Quick-add employee modal */}
       {showQuickAdd && selectedBusiness && (
         <QuickAddEmployeeModal
@@ -426,7 +528,7 @@ export default function DashboardPage() {
                   ))}
                   <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                   <button
-                    onClick={() => { router.push('/businesses'); setShowBizPicker(false); }}
+                    onClick={() => { setShowBizPicker(false); setShowCreateBiz(true); }}
                     className="flex items-center gap-2 w-full transition-colors duration-100"
                     style={{
                       padding: '10px 16px',
