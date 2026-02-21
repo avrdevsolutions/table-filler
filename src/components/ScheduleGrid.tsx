@@ -297,10 +297,14 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
 
       {/* ── Footnotes ── */}
       {(() => {
-        const coItems = orderedEmployees.filter(emp => countCO(cellMap[emp.id] ?? {}) > 0);
-        const cmItems = orderedEmployees.filter(emp => countCM(cellMap[emp.id] ?? {}) > 0);
+        // Employee-driven: one line per employee showing both CO and CM counts
+        const leaveItems = orderedEmployees.filter(emp => {
+          const co = countCO(cellMap[emp.id] ?? {});
+          const cm = countCM(cellMap[emp.id] ?? {});
+          return co > 0 || cm > 0;
+        });
         const demItems = orderedEmployees.filter(emp => emp.terminationDate);
-        if (coItems.length === 0 && cmItems.length === 0 && demItems.length === 0) return null;
+        if (leaveItems.length === 0 && demItems.length === 0) return null;
         return (
           <div style={{
             marginTop: 0,
@@ -308,39 +312,28 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
             borderTop: '1px solid var(--border-subtle)',
             display: 'flex', gap: 40, flexWrap: 'wrap',
           }}>
-            {coItems.length > 0 && (
+            {leaveItems.length > 0 && (
               <div>
                 <p style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: 6 }}>
-                  Concediu de odihnă:
+                  Concedii:
                 </p>
-                {coItems.map(emp => {
-                  const coDays = Object.entries(cellMap[emp.id] ?? {})
+                {leaveItems.map(emp => {
+                  const empCells = cellMap[emp.id] ?? {};
+                  const coDays = Object.entries(empCells)
                     .filter(([, v]) => v === 'CO')
                     .map(([k]) => Number(k))
                     .sort((a, b) => a - b);
-                  return (
-                    <p key={emp.id} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 3 }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{emp.fullName}</span>
-                      {' — '}{coDays.length} zile ({coDays.join(', ')})
-                    </p>
-                  );
-                })}
-              </div>
-            )}
-            {cmItems.length > 0 && (
-              <div>
-                <p style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: 6 }}>
-                  Concediu medical:
-                </p>
-                {cmItems.map(emp => {
-                  const cmDays = Object.entries(cellMap[emp.id] ?? {})
+                  const cmDays = Object.entries(empCells)
                     .filter(([, v]) => v === 'CM')
                     .map(([k]) => Number(k))
                     .sort((a, b) => a - b);
+                  const parts: string[] = [];
+                  if (coDays.length > 0) parts.push(`${coDays.length} CO (${coDays.join(', ')})`);
+                  if (cmDays.length > 0) parts.push(`${cmDays.length} CM (${cmDays.join(', ')})`);
                   return (
                     <p key={emp.id} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 3 }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{emp.fullName}</span>
-                      {' — '}{cmDays.length} zile ({cmDays.join(', ')})
+                      {' — '}{parts.join(', ')}
                     </p>
                   );
                 })}
