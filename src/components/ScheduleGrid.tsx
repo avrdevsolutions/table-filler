@@ -18,15 +18,28 @@ interface ActivePopup { employeeId: string; mode: PopupMode; }
 interface ActiveDemisie { employeeId: string; }
 
 const cellValueStyle: Record<string, React.CSSProperties> = {
-  '24': { color: '#0071e3', fontWeight: 700 },
-  'CO': { color: '#1a7f3c', fontWeight: 700 },
-  'X':  { color: '#c2410c', fontWeight: 700 },
+  '24': { color: 'var(--accent)', fontWeight: 700 },
+  'CO': { color: 'var(--success)', fontWeight: 700 },
+  'X':  { color: 'var(--danger)', fontWeight: 700 },
   'D':  { color: '#6e6e73', fontWeight: 600 },
   'E':  { color: '#6e6e73', fontWeight: 600 },
   'M':  { color: '#6e6e73', fontWeight: 600 },
   'I':  { color: '#6e6e73', fontWeight: 600 },
   'S':  { color: '#6e6e73', fontWeight: 600 },
 };
+
+const cellBg: Record<string, string> = {
+  '24': 'rgba(10,132,255,0.11)',
+  'CO': 'rgba(50,215,75,0.11)',
+  'X':  'rgba(255,69,58,0.11)',
+  'D':  'rgba(110,110,115,0.07)',
+  'E':  'rgba(110,110,115,0.07)',
+  'M':  'rgba(110,110,115,0.07)',
+  'I':  'rgba(110,110,115,0.07)',
+  'S':  'rgba(110,110,115,0.07)',
+};
+
+const WEEKEND_BG = 'rgba(255,214,10,0.04)';
 
 export default function ScheduleGrid({ plan, employees, onCellsChange, onEmployeeUpdate, onEmployeeReorder }: Props) {
   const { month, year } = plan;
@@ -102,7 +115,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                 letterSpacing: '0.05em',
                 textTransform: 'uppercase',
                 color: 'var(--text-secondary)',
-                minWidth: 220,
+                minWidth: 180,
                 whiteSpace: 'nowrap',
               }}>
                 Angajat
@@ -157,24 +170,24 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                   <td style={{
                     position: 'sticky', left: 0, zIndex: 10,
                     background: rowBg,
-                    borderBottom: '1px solid var(--border-subtle)',
-                    borderRight: '1px solid var(--border-subtle)',
+                    borderBottom: '1px solid var(--border)',
+                    borderRight: '1px solid var(--border)',
                     padding: '8px 12px',
-                    minWidth: 220,
+                    minWidth: 180,
                   }}>
-                    {/* Top line: reorder + avatar + name */}
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex flex-col gap-0.5 flex-shrink-0">
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                      {/* Reorder arrows */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0, paddingTop: 2 }}>
                         <button
                           onClick={() => moveEmployee(idx, -1)}
                           disabled={idx === 0}
                           style={{
                             background: 'transparent', color: 'var(--text-tertiary)',
-                            padding: '1px 3px', borderRadius: 4,
-                            fontSize: '0.65rem', fontWeight: 600,
+                            padding: '1px 3px', borderRadius: 3,
+                            fontSize: '0.6rem', fontWeight: 600,
                             border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                            opacity: idx === 0 ? 0.2 : 0.6,
-                            lineHeight: 1,
+                            opacity: idx === 0 ? 0.2 : 0.55,
+                            lineHeight: 1, outline: 'none',
                           }}
                         >▲</button>
                         <button
@@ -182,85 +195,62 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                           disabled={idx === orderedEmployees.length - 1}
                           style={{
                             background: 'transparent', color: 'var(--text-tertiary)',
-                            padding: '1px 3px', borderRadius: 4,
-                            fontSize: '0.65rem', fontWeight: 600,
+                            padding: '1px 3px', borderRadius: 3,
+                            fontSize: '0.6rem', fontWeight: 600,
                             border: 'none', cursor: idx === orderedEmployees.length - 1 ? 'not-allowed' : 'pointer',
-                            opacity: idx === orderedEmployees.length - 1 ? 0.2 : 0.6,
-                            lineHeight: 1,
+                            opacity: idx === orderedEmployees.length - 1 ? 0.2 : 0.55,
+                            lineHeight: 1, outline: 'none',
                           }}
                         >▼</button>
                       </div>
-                      <div style={{
-                        width: 26, height: 26,
-                        borderRadius: '50%',
-                        background: 'var(--accent-light)',
-                        color: 'var(--accent)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.65rem', fontWeight: 700,
-                        flexShrink: 0,
-                      }}>
-                        {emp.fullName.charAt(0).toUpperCase()}
+                      {/* Name + action chips */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>
+                          {emp.fullName}
+                        </span>
+                        <div style={{ display: 'flex', gap: 3 }}>
+                          <button
+                            onClick={() => setPopup({ employeeId: emp.id, mode: 'ZL' })}
+                            style={{ background: 'rgba(10,132,255,0.13)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700, border: 'none', cursor: 'pointer', outline: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(10,132,255,0.24)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(10,132,255,0.13)')}
+                          >ZL</button>
+                          <button
+                            onClick={() => setPopup({ employeeId: emp.id, mode: 'CO' })}
+                            style={{ background: 'rgba(50,215,75,0.13)', color: 'var(--success)', padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700, border: 'none', cursor: 'pointer', outline: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(50,215,75,0.24)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(50,215,75,0.13)')}
+                          >CO</button>
+                          <button
+                            onClick={() => setPopup({ employeeId: emp.id, mode: 'X' })}
+                            style={{ background: 'rgba(255,69,58,0.13)', color: 'var(--danger)', padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700, border: 'none', cursor: 'pointer', outline: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,69,58,0.24)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,69,58,0.13)')}
+                          >X</button>
+                          <button
+                            onClick={() => setDemisieDialog({ employeeId: emp.id })}
+                            style={{ background: 'rgba(255,214,10,0.12)', color: 'var(--warning)', padding: '2px 7px', borderRadius: 5, fontSize: '0.65rem', fontWeight: 700, border: 'none', cursor: 'pointer', outline: 'none' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,214,10,0.22)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,214,10,0.12)')}
+                          >D</button>
+                        </div>
                       </div>
-                      <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{emp.fullName}</span>
-                    </div>
-                    {/* Second line: action chips */}
-                    <div style={{ display: 'flex', gap: 3, marginTop: 5, marginLeft: 32 }}>
-                      <button
-                        onClick={() => setPopup({ employeeId: emp.id, mode: 'ZL' })}
-                        style={{
-                          background: 'rgba(10,132,255,0.12)', color: 'var(--accent)',
-                          padding: '2px 7px', borderRadius: 5,
-                          fontSize: '0.65rem', fontWeight: 700,
-                          border: 'none', cursor: 'pointer',
-                        }}
-                      >ZL</button>
-                      <button
-                        onClick={() => setPopup({ employeeId: emp.id, mode: 'CO' })}
-                        style={{
-                          background: 'rgba(50,215,75,0.12)', color: 'var(--success)',
-                          padding: '2px 7px', borderRadius: 5,
-                          fontSize: '0.65rem', fontWeight: 700,
-                          border: 'none', cursor: 'pointer',
-                        }}
-                      >CO</button>
-                      <button
-                        onClick={() => setPopup({ employeeId: emp.id, mode: 'X' })}
-                        style={{
-                          background: 'rgba(255,69,58,0.12)', color: 'var(--danger)',
-                          padding: '2px 7px', borderRadius: 5,
-                          fontSize: '0.65rem', fontWeight: 700,
-                          border: 'none', cursor: 'pointer',
-                        }}
-                      >X</button>
-                      <button
-                        onClick={() => setDemisieDialog({ employeeId: emp.id })}
-                        style={{
-                          background: 'rgba(255,214,10,0.1)', color: 'var(--warning)',
-                          padding: '2px 7px', borderRadius: 5,
-                          fontSize: '0.65rem', fontWeight: 700,
-                          border: 'none', cursor: 'pointer',
-                        }}
-                      >D</button>
                     </div>
                   </td>
 
                   {/* Day cells */}
                   {daysArr.map(d => {
                     const val = demisie[d] || cells[d] || '';
-                    const isDem = !!demisie[d];
                     const style = cellValueStyle[val] ?? {};
+                    const bg = cellBg[val] ?? (isWeekend(d) ? WEEKEND_BG : 'transparent');
                     return (
                       <td key={d} style={{
-                        borderBottom: '1px solid var(--border-subtle)',
+                        borderBottom: '1px solid var(--border)',
                         borderRight: '1px solid var(--border-subtle)',
                         textAlign: 'center',
                         padding: '8px 2px',
                         width: 36,
-                        background: isDem
-                          ? 'rgba(110,110,115,0.08)'
-                          : isWeekend(d)
-                          ? 'rgba(255,214,10,0.04)'
-                          : 'transparent',
+                        background: bg,
                         fontSize: '0.75rem',
                         ...style,
                       }}>
@@ -273,7 +263,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                   <td style={{
                     position: 'sticky', right: 0, zIndex: 10,
                     background: rowBg,
-                    borderBottom: '1px solid var(--border-subtle)',
+                    borderBottom: '1px solid var(--border)',
                     borderLeft: '1px solid var(--border)',
                     padding: '10px 12px',
                     textAlign: 'center',

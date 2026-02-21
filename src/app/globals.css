@@ -6,9 +6,9 @@
   /* ── Dark Apple palette ────────────────────────────── */
 
   /* Backgrounds */
-  --bg: #0a0a0f;
-  --bg-gradient-start: #0a0a0f;
-  --bg-gradient-end: #12121a;
+  --bg: #06060c;
+  --bg-gradient-start: #07070f;
+  --bg-gradient-end: #0e0b18;
   --surface: #1c1c1e;
   --surface-2: #2c2c2e;
   --surface-elevated: #242428;
@@ -45,7 +45,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-primary);
-  background: linear-gradient(160deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, #080810 45%, var(--bg-gradient-end) 100%);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
