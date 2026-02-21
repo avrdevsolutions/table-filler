@@ -40,4 +40,4 @@ export interface MonthPlan {
   updatedAt: string;
 }
 
-export type CellValue = '' | '24' | 'CO' | 'X' | 'D' | 'E' | 'M' | 'I' | 'S';
+export type CellValue = '' | '24' | 'CO' | 'CM' | 'X' | 'D' | 'E' | 'M' | 'I' | 'S';

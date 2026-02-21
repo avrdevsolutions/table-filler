@@ -6,6 +6,208 @@ import { MONTHS_RO, getDaysInMonth } from '@/lib/schedule';
 import type { MonthPlan, Employee, Business } from '@/types';
 import MonthSelector from '@/components/MonthSelector';
 import ScheduleGrid from '@/components/ScheduleGrid';
+import DatePickerModal from '@/components/DatePickerModal';
+
+/* ── Quick-add employee modal ─────────────────────────────── */
+function QuickAddEmployeeModal({
+  businessId,
+  onClose,
+  onAdded,
+}: {
+  businessId: string;
+  onClose: () => void;
+  onAdded: (emp: Employee) => void;
+}) {
+  const [name, setName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  function fmtDate(d: string) {
+    const p = d.split('-');
+    return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : d;
+  }
+
+  async function handleAdd() {
+    let valid = true;
+    if (!name.trim()) { setNameError('Numele este obligatoriu.'); valid = false; }
+    if (!startDate) { setDateError('Data de început este obligatorie.'); valid = false; }
+    if (!valid) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: name.trim(), businessId, startDate }),
+      });
+      if (!res.ok) {
+        setNameError('Eroare la adăugarea angajatului. Încearcă din nou.');
+        setAdding(false);
+        return;
+      }
+      const emp = await res.json();
+      setAdding(false);
+      onAdded(emp);
+    } catch {
+      setNameError('Eroare la adăugarea angajatului. Încearcă din nou.');
+      setAdding(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <h3 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>Adaugă angajat</h3>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
+            style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div className="p-6 flex flex-col gap-4">
+          <div>
+            <label className="form-label">Nume și prenume <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input
+              type="text" value={name}
+              onChange={e => { setName(e.target.value); if (nameError) setNameError(''); }}
+              placeholder="ex: Ion Popescu"
+              className="form-input"
+              style={nameError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}}
+            />
+            {nameError && <p className="field-error">{nameError}</p>}
+          </div>
+          <div>
+            <label className="form-label">Data început <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <button
+              onClick={() => setShowDatePicker(true)}
+              className="form-input flex items-center justify-between"
+              style={{ cursor: 'pointer', textAlign: 'left', ...(dateError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}) }}
+            >
+              <span style={{ color: startDate ? 'var(--text-primary)' : 'var(--text-secondary)', opacity: startDate ? 1 : 0.65 }}>
+                {startDate ? fmtDate(startDate) : 'Selectează data angajării'}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </button>
+            {dateError && <p className="field-error">{dateError}</p>}
+            {showDatePicker && (
+              <DatePickerModal
+                value={startDate}
+                onSelect={date => { setStartDate(date); setDateError(''); }}
+                onClose={() => setShowDatePicker(false)}
+              />
+            )}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleAdd} disabled={adding} className="btn-primary flex-1 justify-center">
+              {adding ? 'Se adaugă…' : 'Adaugă'}
+            </button>
+            <button onClick={onClose} className="btn-ghost">Anulează</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Create Business modal (inline in dashboard) ────── */
+function CreateBizModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (biz: Business) => void;
+}) {
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    let valid = true;
+    if (!name.trim()) { setNameError('Numele firmei este obligatoriu.'); valid = false; }
+    else setNameError('');
+    if (!location.trim()) { setLocationError('Locația este obligatorie.'); valid = false; }
+    else setLocationError('');
+    if (!valid) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), locationName: location.trim() }),
+      });
+      if (!res.ok) { setNameError('Eroare la crearea firmei. Încearcă din nou.'); setSaving(false); return; }
+      const biz = await res.json();
+      onCreated(biz);
+    } catch {
+      setNameError('Eroare la crearea firmei. Încearcă din nou.');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 pb-4" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <h3 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>Adaugă firmă nouă</h3>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-150"
+            style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div className="p-6 flex flex-col gap-4">
+          <div>
+            <label className="form-label">Numele firmei <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input
+              type="text" value={name}
+              onChange={e => { setName(e.target.value); if (nameError) setNameError(''); }}
+              className="form-input" placeholder="ex: SC Exemplu SRL"
+              style={nameError ? { borderColor: 'var(--danger)' } : {}}
+            />
+            {nameError && <p className="field-error">{nameError}</p>}
+          </div>
+          <div>
+            <label className="form-label">Locație <span style={{ color: 'var(--danger)' }}>*</span></label>
+            <input
+              type="text" value={location}
+              onChange={e => { setLocation(e.target.value); if (locationError) setLocationError(''); }}
+              className="form-input" placeholder="ex: Ansamblul Petrila"
+              style={locationError ? { borderColor: 'var(--danger)' } : {}}
+            />
+            {locationError && <p className="field-error">{locationError}</p>}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center">
+              {saving ? 'Se salvează…' : 'Adaugă firmă'}
+            </button>
+            <button onClick={onClose} className="btn-ghost">Anulează</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -21,6 +223,9 @@ export default function DashboardPage() {
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [showBizPicker, setShowBizPicker] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showCreateBiz, setShowCreateBiz] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const bizPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -191,6 +396,52 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      {/* Toast */}
+      {toast && (
+        <div className="toast toast-success" onClick={() => setToast(null)} style={{ cursor: 'pointer' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: 6 }}>
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          {toast}
+        </div>
+      )}
+
+      {/* Create Business modal */}
+      {showCreateBiz && (
+        <CreateBizModal
+          onClose={() => setShowCreateBiz(false)}
+          onCreated={biz => {
+            setBusinesses(prev => [...prev, biz]);
+            setShowCreateBiz(false);
+            selectBusiness(biz);
+            setToast(`Firma "${biz.name}" a fost adăugată.`);
+            setTimeout(() => setToast(null), 2800);
+          }}
+        />
+      )}
+
+      {/* Quick-add employee modal */}
+      {showQuickAdd && selectedBusiness && (
+        <QuickAddEmployeeModal
+          businessId={selectedBusiness.id}
+          onClose={() => setShowQuickAdd(false)}
+          onAdded={emp => {
+            setEmployees(prev => [...prev, emp]);
+            setShowQuickAdd(false);
+            setToast(`${emp.fullName} a fost adăugat cu succes.`);
+            setTimeout(() => setToast(null), 2800);
+            // Also update the plan's employeeIds to include the new employee
+            if (plan) {
+              const ids: string[] = JSON.parse(plan.employeeIds || '[]');
+              if (!ids.includes(emp.id)) {
+                const newIds = [...ids, emp.id];
+                handleEmployeeReorder(newIds);
+              }
+            }
+          }}
+        />
+      )}
+
       {/* ── Navigation Bar ── */}
       <nav style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 40 }}>
         <div className="max-w-screen-2xl mx-auto flex items-center justify-between" style={{ height: 52, paddingLeft: 16, paddingRight: 16 }}>
@@ -212,16 +463,23 @@ export default function DashboardPage() {
             <div style={{ position: 'relative' }} ref={bizPickerRef}>
               <button
                 onClick={() => setShowBizPicker(v => !v)}
-                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+                className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
                 style={{
-                  color: 'var(--text-primary)',
+                  padding: '0 12px', height: 44,
+                  color: 'var(--text-secondary)',
                   whiteSpace: 'nowrap',
                   border: '1px solid var(--border)',
                   background: showBizPicker ? 'var(--surface-2)' : 'var(--surface)',
+                  cursor: 'pointer',
                 }}
-                title="Schimbă firma"
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => { if (!showBizPicker) { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
               >
-                <span className="truncate" style={{ maxWidth: 140 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                  <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span className="truncate" style={{ maxWidth: 120 }}>
                   {selectedBusiness?.name ?? 'Selectează firma'}
                 </span>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -270,7 +528,7 @@ export default function DashboardPage() {
                   ))}
                   <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                   <button
-                    onClick={() => { router.push('/businesses'); setShowBizPicker(false); }}
+                    onClick={() => { setShowBizPicker(false); setShowCreateBiz(true); }}
                     className="flex items-center gap-2 w-full transition-colors duration-100"
                     style={{
                       padding: '10px 16px',
@@ -292,21 +550,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-            {/* Back to businesses */}
-            <button
-              onClick={() => router.push('/businesses')}
-              className="flex items-center justify-center rounded-xl transition-colors duration-150"
-              style={{ width: 36, height: 36, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', flexShrink: 0 }}
-              title="Gestionează firme"
-              aria-label="Gestionează firme"
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </button>
             {/* Logout */}
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
@@ -340,7 +583,36 @@ export default function DashboardPage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Back to businesses */}
+            <button
+              onClick={() => router.push('/businesses')}
+              className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
+              style={{ padding: '0 12px', height: 44, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Înapoi la firme
+            </button>
+            {/* Gestionează angajați */}
+            {selectedBusiness && (
+              <button
+                onClick={() => setShowQuickAdd(true)}
+                className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
+                style={{ padding: '0 12px', height: 44, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Gestionează angajați
+              </button>
+            )}
             <MonthSelector month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
             {plan && !loading && (
               <button
@@ -349,7 +621,7 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 text-sm font-semibold rounded-xl transition-colors duration-150"
                 style={{
                   padding: '8px 16px',
-                  minHeight: 40,
+                  height: 44,
                   background: 'var(--surface)',
                   border: '1.5px solid var(--border)',
                   color: 'var(--text-primary)',
