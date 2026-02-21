@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { MONTHS_RO, getDaysInMonth } from '@/lib/schedule';
@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [showBizPicker, setShowBizPicker] = useState(false);
+  const bizPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -40,6 +43,24 @@ export default function DashboardPage() {
   }, [status, router]);
 
   useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/businesses')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setBusinesses(data); })
+      .catch(() => {});
+  }, [status]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (bizPickerRef.current && !bizPickerRef.current.contains(e.target as Node)) {
+        setShowBizPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     if (!selectedBusiness) return;
     setLoading(true);
     setPlan(null);
@@ -54,6 +75,19 @@ export default function DashboardPage() {
       .then(full => { setPlan(full); setLoading(false); })
       .catch(e => { console.error(e); setLoading(false); });
   }, [month, year, selectedBusiness]);
+
+  function selectBusiness(biz: Business) {
+    try {
+      localStorage.setItem('selectedBusiness', JSON.stringify({ id: biz.id, name: biz.name, locationName: biz.locationName }));
+    } catch {}
+    setSelectedBusiness(biz);
+    setShowBizPicker(false);
+    setEmployees([]);
+    fetch(`/api/employees?businessId=${biz.id}&includeInactive=false`)
+      .then(r => r.json())
+      .then(setEmployees)
+      .catch(() => { alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.'); });
+  }
 
   const handleCellsChange = useCallback((employeeId: string, updates: Record<number, string>) => {
     if (!plan) return;
@@ -171,34 +205,119 @@ export default function DashboardPage() {
             <span className="font-semibold text-sm hidden sm:inline" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
               Pontaj Lunar
             </span>
-            {selectedBusiness && (
-              <>
-                <span className="hidden sm:inline" style={{ color: 'var(--border)' }}>›</span>
-                <span className="badge badge-accent truncate" style={{ maxWidth: 120 }} title={selectedBusiness.name}>{selectedBusiness.name}</span>
-              </>
-            )}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Business switcher dropdown */}
+            <div style={{ position: 'relative' }} ref={bizPickerRef}>
+              <button
+                onClick={() => setShowBizPicker(v => !v)}
+                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+                style={{
+                  color: 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                  border: '1px solid var(--border)',
+                  background: showBizPicker ? 'var(--surface-2)' : 'var(--surface)',
+                }}
+                title="Schimbă firma"
+              >
+                <span className="truncate" style={{ maxWidth: 140 }}>
+                  {selectedBusiness?.name ?? 'Selectează firma'}
+                </span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ flexShrink: 0, opacity: 0.5, transform: showBizPicker ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {showBizPicker && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  background: 'var(--surface-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
+                  minWidth: 220,
+                  zIndex: 200,
+                  overflow: 'hidden',
+                }}>
+                  {businesses.map(biz => (
+                    <button
+                      key={biz.id}
+                      onClick={() => selectBusiness(biz)}
+                      className="flex items-center justify-between w-full transition-colors duration-100"
+                      style={{
+                        padding: '10px 16px',
+                        background: biz.id === selectedBusiness?.id ? 'var(--accent-light)' : 'transparent',
+                        color: biz.id === selectedBusiness?.id ? 'var(--accent)' : 'var(--text-primary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={e => { if (biz.id !== selectedBusiness?.id) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                      onMouseLeave={e => { if (biz.id !== selectedBusiness?.id) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span className="truncate" style={{ maxWidth: 160 }}>{biz.name}</span>
+                      {biz.id === selectedBusiness?.id && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                  <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+                  <button
+                    onClick={() => { router.push('/businesses'); setShowBizPicker(false); }}
+                    className="flex items-center gap-2 w-full transition-colors duration-100"
+                    style={{
+                      padding: '10px 16px',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.8125rem',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Adaugă firmă
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Back to businesses */}
             <button
               onClick={() => router.push('/businesses')}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--accent)', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              className="flex items-center justify-center rounded-xl transition-colors duration-150"
+              style={{ width: 36, height: 36, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', flexShrink: 0 }}
+              title="Gestionează firme"
+              aria-label="Gestionează firme"
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
             >
-              <span className="hidden sm:inline">← </span>Firme
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
             </button>
-            <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary)' }}>
-              {session.user?.name || session.user?.email}
-            </span>
+            {/* Logout */}
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--danger)', background: 'transparent', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-light)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              className="btn-icon-logout"
+              title="Ieșire din cont"
+              aria-label="Ieșire din cont"
             >
-              Ieșire
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -223,7 +342,23 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <MonthSelector month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
             {plan && !loading && (
-              <button onClick={handleExport} disabled={exporting} className="btn-secondary">
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex items-center gap-2 text-sm font-semibold rounded-xl transition-colors duration-150"
+                style={{
+                  padding: '8px 16px',
+                  minHeight: 40,
+                  background: 'var(--surface)',
+                  border: '1.5px solid var(--border)',
+                  color: 'var(--text-primary)',
+                  cursor: exporting ? 'not-allowed' : 'pointer',
+                  opacity: exporting ? 0.6 : 1,
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { if (!exporting) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; }}
+              >
                 {exporting ? (
                   <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M21 12a9 9 0 11-6.219-8.56"/>
@@ -235,7 +370,7 @@ export default function DashboardPage() {
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                 )}
-                {exporting ? 'Se generează…' : 'Exportă PNG'}
+                {exporting ? 'Se generează…' : 'Descarcă'}
               </button>
             )}
           </div>
@@ -264,10 +399,10 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                  Niciun angajat activ
+                  Nu există date pentru luna selectată.
                 </p>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  Nu există angajați activi pentru această perioadă.
+                  Adaugă angajați sau completează pontajul.
                 </p>
                 <button onClick={() => router.push('/businesses')} className="btn-primary">
                   Gestionează angajații

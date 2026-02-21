@@ -6,9 +6,9 @@
   /* ── Dark Apple palette ────────────────────────────── */
 
   /* Backgrounds */
-  --bg: #0a0a0f;
-  --bg-gradient-start: #0a0a0f;
-  --bg-gradient-end: #12121a;
+  --bg: #06060c;
+  --bg-gradient-start: #07070f;
+  --bg-gradient-end: #0e0b18;
   --surface: #1c1c1e;
   --surface-2: #2c2c2e;
   --surface-elevated: #242428;
@@ -45,7 +45,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-primary);
-  background: linear-gradient(160deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, #080810 45%, var(--bg-gradient-end) 100%);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -274,6 +274,27 @@ body {
 .badge-success { background: var(--success-light); color: var(--success); }
 .badge-danger  { background: var(--danger-light);  color: var(--danger);  }
 .badge-warning { background: var(--warning-light); color: #e6c200; }
+
+/* Icon-only logout button */
+.btn-icon-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  flex-shrink: 0;
+}
+.btn-icon-logout:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger);
+}
 
 /* Smooth focus ring for accessibility */
 :focus-visible {
