@@ -4,3 +4,5 @@ node_modules/
 **/*.db
 **/*.db-journal
 tsconfig.tsbuildinfo
+playwright-report/
+test-results/
