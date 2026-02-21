@@ -542,17 +542,8 @@ export default function BusinessesPage() {
           employee={detailsEmployee.emp}
           bizId={detailsEmployee.bizId}
           onClose={() => setDetailsEmployee(null)}
-          onSetDemisie={async (bizId, empId, date) => {
-            await handleSetDemisie(bizId, empId, date);
-            // update local state for the modal to reflect
-            setBizEmployees(prev => ({
-              ...prev,
-              [bizId]: (prev[bizId] ?? []).map(e => e.id === empId ? { ...e, terminationDate: date, active: false } : e),
-            }));
-          }}
-          onRemoveDemisie={async (bizId, empId) => {
-            await handleRemoveDemisie(bizId, empId);
-          }}
+          onSetDemisie={handleSetDemisie}
+          onRemoveDemisie={handleRemoveDemisie}
         />
       )}
 

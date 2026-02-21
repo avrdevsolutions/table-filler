@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isValidEmail } from '@/lib/validation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ export default function LoginPage() {
   function validate(): boolean {
     const errs: { email?: string; password?: string } = {};
     if (!email) errs.email = 'Emailul este obligatoriu.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Format email invalid.';
+    else if (!isValidEmail(email)) errs.email = 'Format email invalid.';
     if (!password) errs.password = 'Parola este obligatorie.';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;

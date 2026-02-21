@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isValidEmail } from '@/lib/validation';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ export default function RegisterPage() {
   function validate(): boolean {
     const errs: { email?: string; password?: string } = {};
     if (!email) errs.email = 'Emailul este obligatoriu.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Format email invalid.';
+    else if (!isValidEmail(email)) errs.email = 'Format email invalid.';
     if (!password) errs.password = 'Parola este obligatorie.';
     else if (password.length < 6) errs.password = 'Parola trebuie să aibă minim 6 caractere.';
     setFieldErrors(errs);
