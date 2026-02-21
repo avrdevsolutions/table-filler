@@ -342,7 +342,7 @@ export default function DashboardPage() {
 
       {/* ── Navigation Bar ── */}
       <nav style={{ background: 'var(--nav-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 40 }}>
-        <div className="max-w-screen-2xl mx-auto flex items-center justify-between flex-wrap gap-2" style={{ minHeight: 52, paddingLeft: 16, paddingRight: 16, paddingTop: 6, paddingBottom: 6 }}>
+        <div className="max-w-screen-2xl mx-auto flex items-center justify-between" style={{ height: 52, paddingLeft: 16, paddingRight: 16 }}>
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0" style={{ background: 'var(--accent)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -352,25 +352,32 @@ export default function DashboardPage() {
                 <line x1="3" y1="10" x2="21" y2="10"/>
               </svg>
             </div>
-            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+            <span className="font-semibold text-sm hidden sm:inline" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
               Pontaj Lunar
             </span>
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Business switcher dropdown */}
             <div style={{ position: 'relative' }} ref={bizPickerRef}>
               <button
                 onClick={() => setShowBizPicker(v => !v)}
-                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+                className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
                 style={{
-                  color: 'var(--text-primary)',
+                  padding: '0 12px', height: 44,
+                  color: 'var(--text-secondary)',
                   whiteSpace: 'nowrap',
                   border: '1px solid var(--border)',
                   background: showBizPicker ? 'var(--surface-2)' : 'var(--surface)',
+                  cursor: 'pointer',
                 }}
-                title="Schimbă firma"
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => { if (!showBizPicker) { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
               >
-                <span className="truncate" style={{ maxWidth: 140 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                  <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span className="truncate" style={{ maxWidth: 120 }}>
                   {selectedBusiness?.name ?? 'Selectează firma'}
                 </span>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -441,35 +448,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-            {/* Gestionează angajați */}
-            {selectedBusiness && (
-              <button
-                onClick={() => setShowQuickAdd(true)}
-                className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
-                style={{ padding: '0 12px', height: 44, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                  <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-                </svg>
-                Gestionează angajați
-              </button>
-            )}
-            {/* Back to businesses */}
-            <button
-              onClick={() => router.push('/businesses')}
-              className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
-              style={{ padding: '0 12px', height: 44, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-              Înapoi la firme
-            </button>
             {/* Logout */}
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
@@ -503,7 +481,36 @@ export default function DashboardPage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Back to businesses */}
+            <button
+              onClick={() => router.push('/businesses')}
+              className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
+              style={{ padding: '0 12px', height: 44, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Înapoi la firme
+            </button>
+            {/* Gestionează angajați */}
+            {selectedBusiness && (
+              <button
+                onClick={() => setShowQuickAdd(true)}
+                className="flex items-center gap-1.5 text-sm font-medium rounded-xl transition-colors duration-150"
+                style={{ padding: '0 12px', height: 44, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                Gestionează angajați
+              </button>
+            )}
             <MonthSelector month={month} year={year} onMonthChange={setMonth} onYearChange={setYear} />
             {plan && !loading && (
               <button
@@ -512,7 +519,7 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 text-sm font-semibold rounded-xl transition-colors duration-150"
                 style={{
                   padding: '8px 16px',
-                  minHeight: 40,
+                  height: 44,
                   background: 'var(--surface)',
                   border: '1.5px solid var(--border)',
                   color: 'var(--text-primary)',
