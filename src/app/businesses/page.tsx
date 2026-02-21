@@ -351,9 +351,13 @@ function BusinessFormModal({
   const [name, setName] = useState(initialName);
   const [location, setLocation] = useState(initialLocation);
   const [nameError, setNameError] = useState('');
+  const [locationError, setLocationError] = useState('');
 
   function handleSave() {
-    if (!name.trim()) { setNameError('Numele firmei este obligatoriu.'); return; }
+    let valid = true;
+    if (!name.trim()) { setNameError('Numele firmei este obligatoriu.'); valid = false; }
+    if (!location.trim()) { setLocationError('Locația este obligatorie.'); valid = false; }
+    if (!valid) return;
     onSave(name.trim(), location.trim());
   }
 
@@ -392,14 +396,27 @@ function BusinessFormModal({
             )}
           </div>
           <div>
-            <label className="form-label">Locație <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>(opțional)</span></label>
+            <label className="form-label">Locație <span style={{ color: 'var(--danger)' }}>*</span></label>
             <input
-              type="text" value={location} onChange={e => setLocation(e.target.value)}
-              className="form-input" placeholder="ex: Ansamblul Petrila"
+              type="text" value={location}
+              onChange={e => { setLocation(e.target.value); if (locationError) setLocationError(''); }}
+              className="form-input"
+              placeholder="ex: Ansamblul Petrila"
+              style={locationError ? { borderColor: 'var(--danger)' } : {}}
             />
+            {locationError && (
+              <p className="field-error">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {locationError}
+              </p>
+            )}
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 justify-center">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="btn-primary flex-1 justify-center"
+            >
               {saving ? 'Se salvează…' : 'Salvează'}
             </button>
             <button onClick={onClose} className="btn-ghost">Anulează</button>
@@ -665,17 +682,17 @@ export default function BusinessesPage() {
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-sm hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>
-              {session.user?.name || session.user?.email}
-            </span>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--danger)', background: 'transparent', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-light)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              className="btn-icon-logout"
+              title="Ieșire din cont"
+              aria-label="Ieșire din cont"
             >
-              Ieșire
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -708,9 +725,9 @@ export default function BusinessesPage() {
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
             </div>
-            <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Nicio firmă adăugată</p>
+            <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Nu ai încă nicio firmă</p>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-              Adaugă prima firmă pentru a începe să gestionezi pontajele.
+              Adaugă prima firmă pentru a începe planificarea.
             </p>
             <button onClick={() => setShowCreate(true)} className="btn-primary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

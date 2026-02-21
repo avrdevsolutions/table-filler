@@ -93,7 +93,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
               <th style={{
                 position: 'sticky', left: 0, zIndex: 20,
                 background: 'var(--surface-2)',
-                borderBottom: '2px solid var(--border)',
+                borderBottom: '1px solid var(--border)',
                 borderRight: '1px solid var(--border-subtle)',
                 padding: '10px 16px',
                 textAlign: 'left',
@@ -102,51 +102,33 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                 letterSpacing: '0.05em',
                 textTransform: 'uppercase',
                 color: 'var(--text-secondary)',
-                minWidth: 180,
+                minWidth: 220,
                 whiteSpace: 'nowrap',
               }}>
                 Angajat
               </th>
-              {/* Actions column */}
-              <th style={{
-                position: 'sticky', left: 180, zIndex: 20,
-                background: 'var(--surface-2)',
-                borderBottom: '2px solid var(--border)',
-                borderRight: '2px solid var(--border)',
-                padding: '10px 12px',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                color: 'var(--text-secondary)',
-                minWidth: 120,
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-              }}>
-                Acțiuni
-              </th>
               {/* Day columns */}
               {daysArr.map(d => (
                 <th key={d} style={{
-                  borderBottom: '2px solid var(--border)',
+                  borderBottom: '1px solid var(--border)',
                   borderRight: '1px solid var(--border-subtle)',
                   padding: '6px 2px',
                   textAlign: 'center',
                   width: 36,
                   minWidth: 36,
-                  background: isWeekend(d) ? '#fef3e8' : 'var(--surface-2)',
+                  background: isWeekend(d) ? 'rgba(255,214,10,0.06)' : 'var(--surface-2)',
                   userSelect: 'none',
                 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.75rem', color: isWeekend(d) ? '#b45309' : 'var(--text-primary)' }}>{d}</div>
-                  <div style={{ fontSize: '0.6rem', color: isWeekend(d) ? '#d97706' : 'var(--text-tertiary)', marginTop: 1 }}>{getDow(d)}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.75rem', color: isWeekend(d) ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{d}</div>
+                  <div style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)', marginTop: 1 }}>{getDow(d)}</div>
                 </th>
               ))}
               {/* Total column */}
               <th style={{
                 position: 'sticky', right: 0, zIndex: 20,
                 background: 'var(--surface-2)',
-                borderBottom: '2px solid var(--border)',
-                borderLeft: '2px solid var(--border)',
+                borderBottom: '1px solid var(--border)',
+                borderLeft: '1px solid var(--border)',
                 padding: '10px 12px',
                 textAlign: 'center',
                 fontSize: '0.7rem',
@@ -171,124 +153,94 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
 
               return (
                 <tr key={emp.id} style={{ background: rowBg }}>
-                  {/* Name cell */}
+                  {/* Name + actions cell */}
                   <td style={{
                     position: 'sticky', left: 0, zIndex: 10,
                     background: rowBg,
                     borderBottom: '1px solid var(--border-subtle)',
                     borderRight: '1px solid var(--border-subtle)',
-                    padding: '10px 16px',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    whiteSpace: 'nowrap',
-                    color: 'var(--text-primary)',
+                    padding: '8px 12px',
+                    minWidth: 220,
                   }}>
-                    <div className="flex items-center gap-2">
+                    {/* Top line: reorder + avatar + name */}
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => moveEmployee(idx, -1)}
+                          disabled={idx === 0}
+                          style={{
+                            background: 'transparent', color: 'var(--text-tertiary)',
+                            padding: '1px 3px', borderRadius: 4,
+                            fontSize: '0.65rem', fontWeight: 600,
+                            border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                            opacity: idx === 0 ? 0.2 : 0.6,
+                            lineHeight: 1,
+                          }}
+                        >▲</button>
+                        <button
+                          onClick={() => moveEmployee(idx, 1)}
+                          disabled={idx === orderedEmployees.length - 1}
+                          style={{
+                            background: 'transparent', color: 'var(--text-tertiary)',
+                            padding: '1px 3px', borderRadius: 4,
+                            fontSize: '0.65rem', fontWeight: 600,
+                            border: 'none', cursor: idx === orderedEmployees.length - 1 ? 'not-allowed' : 'pointer',
+                            opacity: idx === orderedEmployees.length - 1 ? 0.2 : 0.6,
+                            lineHeight: 1,
+                          }}
+                        >▼</button>
+                      </div>
                       <div style={{
-                        width: 28, height: 28,
+                        width: 26, height: 26,
                         borderRadius: '50%',
                         background: 'var(--accent-light)',
                         color: 'var(--accent)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.7rem', fontWeight: 700,
+                        fontSize: '0.65rem', fontWeight: 700,
                         flexShrink: 0,
                       }}>
                         {emp.fullName.charAt(0).toUpperCase()}
                       </div>
-                      <span>{emp.fullName}</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{emp.fullName}</span>
                     </div>
-                  </td>
-
-                  {/* Actions cell */}
-                  <td style={{
-                    position: 'sticky', left: 180, zIndex: 10,
-                    background: rowBg,
-                    borderBottom: '1px solid var(--border-subtle)',
-                    borderRight: '2px solid var(--border)',
-                    padding: '6px 8px',
-                  }}>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
-                      {/* ZL */}
+                    {/* Second line: action chips */}
+                    <div style={{ display: 'flex', gap: 3, marginTop: 5, marginLeft: 32 }}>
                       <button
                         onClick={() => setPopup({ employeeId: emp.id, mode: 'ZL' })}
                         style={{
-                          background: '#e8f3ff', color: '#0071e3',
-                          padding: '4px 8px', borderRadius: 6,
-                          fontSize: '0.7rem', fontWeight: 700,
+                          background: 'rgba(10,132,255,0.12)', color: 'var(--accent)',
+                          padding: '2px 7px', borderRadius: 5,
+                          fontSize: '0.65rem', fontWeight: 700,
                           border: 'none', cursor: 'pointer',
-                          transition: 'background 150ms',
-                          whiteSpace: 'nowrap',
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#c8e0ff')}
-                        onMouseLeave={e => (e.currentTarget.style.background = '#e8f3ff')}
                       >ZL</button>
-                      {/* CO */}
                       <button
                         onClick={() => setPopup({ employeeId: emp.id, mode: 'CO' })}
                         style={{
-                          background: '#dcf5e4', color: '#1a7f3c',
-                          padding: '4px 8px', borderRadius: 6,
-                          fontSize: '0.7rem', fontWeight: 700,
+                          background: 'rgba(50,215,75,0.12)', color: 'var(--success)',
+                          padding: '2px 7px', borderRadius: 5,
+                          fontSize: '0.65rem', fontWeight: 700,
                           border: 'none', cursor: 'pointer',
-                          transition: 'background 150ms',
-                          whiteSpace: 'nowrap',
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#b8e8c9')}
-                        onMouseLeave={e => (e.currentTarget.style.background = '#dcf5e4')}
                       >CO</button>
-                      {/* X */}
                       <button
                         onClick={() => setPopup({ employeeId: emp.id, mode: 'X' })}
                         style={{
-                          background: '#fff0eb', color: '#c2410c',
-                          padding: '4px 8px', borderRadius: 6,
-                          fontSize: '0.7rem', fontWeight: 700,
+                          background: 'rgba(255,69,58,0.12)', color: 'var(--danger)',
+                          padding: '2px 7px', borderRadius: 5,
+                          fontSize: '0.65rem', fontWeight: 700,
                           border: 'none', cursor: 'pointer',
-                          transition: 'background 150ms',
-                          whiteSpace: 'nowrap',
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#fdd9c8')}
-                        onMouseLeave={e => (e.currentTarget.style.background = '#fff0eb')}
                       >X</button>
-                      {/* Demisie */}
                       <button
                         onClick={() => setDemisieDialog({ employeeId: emp.id })}
                         style={{
-                          background: 'var(--warning-light)', color: '#92400e',
-                          padding: '4px 8px', borderRadius: 6,
-                          fontSize: '0.7rem', fontWeight: 700,
+                          background: 'rgba(255,214,10,0.1)', color: 'var(--warning)',
+                          padding: '2px 7px', borderRadius: 5,
+                          fontSize: '0.65rem', fontWeight: 700,
                           border: 'none', cursor: 'pointer',
-                          transition: 'background 150ms',
-                          whiteSpace: 'nowrap',
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#fde68a')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--warning-light)')}
                       >D</button>
-                      {/* Move up/down */}
-                      <button
-                        onClick={() => moveEmployee(idx, -1)}
-                        disabled={idx === 0}
-                        style={{
-                          background: 'transparent', color: 'var(--text-tertiary)',
-                          padding: '4px 5px', borderRadius: 6,
-                          fontSize: '0.75rem', fontWeight: 600,
-                          border: 'none', cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                          opacity: idx === 0 ? 0.25 : 1,
-                          transition: 'color 150ms',
-                        }}
-                      >↑</button>
-                      <button
-                        onClick={() => moveEmployee(idx, 1)}
-                        disabled={idx === orderedEmployees.length - 1}
-                        style={{
-                          background: 'transparent', color: 'var(--text-tertiary)',
-                          padding: '4px 5px', borderRadius: 6,
-                          fontSize: '0.75rem', fontWeight: 600,
-                          border: 'none', cursor: idx === orderedEmployees.length - 1 ? 'not-allowed' : 'pointer',
-                          opacity: idx === orderedEmployees.length - 1 ? 0.25 : 1,
-                          transition: 'color 150ms',
-                        }}
-                      >↓</button>
                     </div>
                   </td>
 
@@ -307,7 +259,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                         background: isDem
                           ? 'rgba(110,110,115,0.08)'
                           : isWeekend(d)
-                          ? 'rgba(255,159,10,0.05)'
+                          ? 'rgba(255,214,10,0.04)'
                           : 'transparent',
                         fontSize: '0.75rem',
                         ...style,
@@ -322,7 +274,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                     position: 'sticky', right: 0, zIndex: 10,
                     background: rowBg,
                     borderBottom: '1px solid var(--border-subtle)',
-                    borderLeft: '2px solid var(--border)',
+                    borderLeft: '1px solid var(--border)',
                     padding: '10px 12px',
                     textAlign: 'center',
                     fontWeight: 700,

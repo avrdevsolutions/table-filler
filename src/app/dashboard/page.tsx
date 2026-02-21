@@ -171,34 +171,40 @@ export default function DashboardPage() {
             <span className="font-semibold text-sm hidden sm:inline" style={{ color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
               Pontaj Lunar
             </span>
-            {selectedBusiness && (
-              <>
-                <span className="hidden sm:inline" style={{ color: 'var(--border)' }}>›</span>
-                <span className="badge badge-accent truncate" style={{ maxWidth: 120 }} title={selectedBusiness.name}>{selectedBusiness.name}</span>
-              </>
-            )}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => router.push('/businesses')}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--accent)', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-light)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
+              style={{ color: 'var(--accent)', whiteSpace: 'nowrap', border: '1px solid var(--accent-light)', background: 'var(--accent-light)' }}
+              title="Schimbă firma"
             >
-              <span className="hidden sm:inline">← </span>Firme
+              {selectedBusiness ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                  <span className="truncate" style={{ maxWidth: 120 }}>{selectedBusiness.name}</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </>
+              ) : (
+                <span>Firme</span>
+              )}
             </button>
-            <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary)' }}>
-              {session.user?.name || session.user?.email}
-            </span>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150"
-              style={{ color: 'var(--danger)', background: 'transparent', whiteSpace: 'nowrap' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-light)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              className="btn-icon-logout"
+              title="Ieșire din cont"
+              aria-label="Ieșire din cont"
             >
-              Ieșire
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
             </button>
           </div>
         </div>
@@ -235,7 +241,7 @@ export default function DashboardPage() {
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                 )}
-                {exporting ? 'Se generează…' : 'Exportă PNG'}
+                {exporting ? 'Se generează…' : 'Descarcă'}
               </button>
             )}
           </div>
@@ -264,10 +270,10 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                  Niciun angajat activ
+                  Nu există date pentru luna selectată.
                 </p>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  Nu există angajați activi pentru această perioadă.
+                  Adaugă angajați sau completează pontajul.
                 </p>
                 <button onClick={() => router.push('/businesses')} className="btn-primary">
                   Gestionează angajații

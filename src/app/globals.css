@@ -275,6 +275,27 @@ body {
 .badge-danger  { background: var(--danger-light);  color: var(--danger);  }
 .badge-warning { background: var(--warning-light); color: #e6c200; }
 
+/* Icon-only logout button */
+.btn-icon-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  flex-shrink: 0;
+}
+.btn-icon-logout:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 /* Smooth focus ring for accessibility */
 :focus-visible {
   outline: 2px solid var(--accent);

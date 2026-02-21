@@ -11,6 +11,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const biz = await prisma.business.findFirst({ where: { id, ownerUserId: userId } });
   if (!biz) return NextResponse.json({ error: 'Nu există' }, { status: 404 });
   const { name, locationName } = await req.json();
+  if (name !== undefined && !name?.trim()) return NextResponse.json({ error: 'Numele firmei este obligatoriu' }, { status: 400 });
+  if (locationName !== undefined && !locationName?.trim()) return NextResponse.json({ error: 'Locația este obligatorie' }, { status: 400 });
   const updated = await prisma.business.update({
     where: { id },
     data: {
