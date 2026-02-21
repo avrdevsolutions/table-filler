@@ -21,7 +21,10 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) token.id = user.id;
@@ -33,4 +36,19 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: { signIn: '/login' },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        // Use cookie domain from env for cross-subdomain auth (e.g., ".avrdevelopmentsolutions.ro")
+        domain: process.env.COOKIE_DOMAIN || undefined,
+      },
+    },
+  },
 };
