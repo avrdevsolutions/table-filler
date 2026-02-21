@@ -217,21 +217,26 @@ body {
 /* Form input */
 .form-input {
   width: 100%;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 0.9375rem;
   color: var(--text-primary);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
   min-height: 44px;
   outline: none;
 }
+.form-input:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.10);
+}
 .form-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.22);
 }
-.form-input::placeholder { color: var(--text-tertiary); }
+.form-input::placeholder { color: var(--text-secondary); opacity: 0.55; }
 
 /* Form label */
 .form-label {

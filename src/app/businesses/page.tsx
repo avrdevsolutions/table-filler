@@ -3,7 +3,16 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { formatDateRO } from '@/lib/schedule';
+import { parseLocalDate } from '@/lib/validation';
+import DatePickerModal from '@/components/DatePickerModal';
 import type { Business, Employee } from '@/types';
+
+/** Safe date display without timezone shift: 'YYYY-MM-DD' → 'DD.MM.YYYY' */
+function fmtDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const p = dateStr.split('-');
+  return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : dateStr;
+}
 
 /* ── Toast ─────────────────────────────────────────── */
 function Toast({ message, type, onDone }: { message: string; type: 'success' | 'danger'; onDone: () => void }) {
@@ -137,6 +146,7 @@ function EmployeeDetailsModal({
   onRemoveDemisie: (bizId: string, empId: string) => Promise<void>;
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [demisieDate, setDemisieDate] = useState('');
   const [dateError, setDateError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -145,6 +155,14 @@ function EmployeeDetailsModal({
 
   async function handleSaveDemisie() {
     if (!demisieDate) { setDateError('Data demisiei este obligatorie.'); return; }
+    if (employee.startDate) {
+      const start = parseLocalDate(employee.startDate);
+      const term = parseLocalDate(demisieDate);
+      if (term < start) {
+        setDateError(`Data demisiei nu poate fi înainte de data angajării (${fmtDate(employee.startDate)}).`);
+        return;
+      }
+    }
     setSaving(true);
     await onSetDemisie(bizId, employee.id, demisieDate);
     setSaving(false);
@@ -205,14 +223,14 @@ function EmployeeDetailsModal({
             <div className="flex items-center justify-between">
               <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Data început</span>
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                {employee.startDate ? formatDateRO(employee.startDate) : '—'}
+                {employee.startDate ? fmtDate(employee.startDate) : '—'}
               </span>
             </div>
             {employee.terminationDate && (
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Demisie</span>
                 <span className="text-sm font-medium" style={{ color: 'var(--danger)' }}>
-                  {formatDateRO(employee.terminationDate)}
+                  {fmtDate(employee.terminationDate)}
                 </span>
               </div>
             )}
@@ -258,19 +276,40 @@ function EmployeeDetailsModal({
           ) : (
             <div className="flex flex-col gap-3">
               <div>
-                <label className="form-label">Data demisiei</label>
-                <input
-                  type="date"
-                  value={demisieDate}
-                  onChange={e => { setDemisieDate(e.target.value); if (dateError) setDateError(''); }}
-                  className="form-input"
-                  style={dateError ? { borderColor: 'var(--danger)' } : {}}
-                />
+                <label className="form-label">
+                  Data demisiei <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                <button
+                  onClick={() => setShowCalendar(true)}
+                  className="form-input flex items-center justify-between"
+                  style={{
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    ...(dateError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}),
+                  }}
+                >
+                  <span style={{ color: demisieDate ? 'var(--text-primary)' : 'var(--text-secondary)', opacity: demisieDate ? 1 : 0.65 }}>
+                    {demisieDate ? fmtDate(demisieDate) : 'Selectează data demisiei'}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </button>
                 {dateError && (
                   <p className="field-error">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     {dateError}
                   </p>
+                )}
+                {showCalendar && (
+                  <DatePickerModal
+                    value={demisieDate}
+                    minDate={employee.startDate ?? undefined}
+                    onSelect={date => { setDemisieDate(date); setDateError(''); }}
+                    onClose={() => setShowCalendar(false)}
+                  />
                 )}
               </div>
               <div className="flex gap-2">
@@ -393,6 +432,7 @@ export default function BusinessesPage() {
   const [empNameError, setEmpNameError] = useState('');
   const [empStartDateError, setEmpStartDateError] = useState('');
   const [addingEmp, setAddingEmp] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
 
   // Employee details modal
   const [detailsEmployee, setDetailsEmployee] = useState<{ emp: Employee; bizId: string } | null>(null);
@@ -429,6 +469,7 @@ export default function BusinessesPage() {
       setExpandedBizId(bizId);
       setNewEmpName(''); setNewEmpStartDate('');
       setEmpNameError(''); setEmpStartDateError('');
+      setShowStartDatePicker(false);
       loadEmployees(bizId);
     }
   }
@@ -753,26 +794,50 @@ export default function BusinessesPage() {
                     {/* Add employee */}
                     <div className="flex flex-col gap-3 mb-5 p-4 rounded-2xl" style={{ background: 'var(--surface)', border: '1px solid var(--border-subtle)' }}>
                       <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Adaugă angajat nou</p>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-3">
                         <div>
+                          <label className="form-label">
+                            Nume complet <span style={{ color: 'var(--danger)' }}>*</span>
+                          </label>
                           <input
                             type="text" value={newEmpName}
                             onChange={e => { setNewEmpName(e.target.value); if (empNameError) setEmpNameError(''); }}
-                            placeholder="Nume complet *"
+                            placeholder="ex: Ion Popescu"
                             className="form-input"
-                            style={{ fontSize: '0.875rem', padding: '10px 14px', ...(empNameError ? { borderColor: 'var(--danger)' } : {}) }}
+                            style={empNameError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}}
                           />
                           {empNameError && <p className="field-error">{empNameError}</p>}
                         </div>
                         <div>
-                          <input
-                            type="date" value={newEmpStartDate}
-                            onChange={e => { setNewEmpStartDate(e.target.value); if (empStartDateError) setEmpStartDateError(''); }}
-                            title="Data angajării *"
-                            className="form-input"
-                            style={{ fontSize: '0.875rem', padding: '10px 14px', ...(empStartDateError ? { borderColor: 'var(--danger)' } : {}) }}
-                          />
+                          <label className="form-label">
+                            Data angajării <span style={{ color: 'var(--danger)' }}>*</span>
+                          </label>
+                          <button
+                            onClick={() => setShowStartDatePicker(true)}
+                            className="form-input flex items-center justify-between"
+                            style={{
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              ...(empStartDateError ? { borderColor: 'var(--danger)', boxShadow: 'none' } : {}),
+                            }}
+                          >
+                            <span style={{ color: newEmpStartDate ? 'var(--text-primary)' : 'var(--text-secondary)', opacity: newEmpStartDate ? 1 : 0.65 }}>
+                              {newEmpStartDate ? fmtDate(newEmpStartDate) : 'Selectează data angajării'}
+                            </span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-tertiary)' }}>
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                              <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                          </button>
                           {empStartDateError && <p className="field-error">{empStartDateError}</p>}
+                          {showStartDatePicker && (
+                            <DatePickerModal
+                              value={newEmpStartDate}
+                              onSelect={date => { setNewEmpStartDate(date); setEmpStartDateError(''); }}
+                              onClose={() => setShowStartDatePicker(false)}
+                            />
+                          )}
                         </div>
                       </div>
                       <button
@@ -818,7 +883,7 @@ export default function BusinessesPage() {
                                   </span>
                                   {emp.startDate && (
                                     <span className="text-xs block mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                                      din {formatDateRO(emp.startDate)}
+                                      din {fmtDate(emp.startDate)}
                                     </span>
                                   )}
                                 </div>
