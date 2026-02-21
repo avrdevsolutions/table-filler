@@ -7,11 +7,12 @@ interface Props {
   month: number;
   employeeName: string;
   currentDate?: string | null;
+  currentCells?: Record<number, string>;
   onConfirm: (date: string | null) => void;
   onClose: () => void;
 }
 
-export default function DemisieDialog({ year, month, employeeName, currentDate, onConfirm, onClose }: Props) {
+export default function DemisieDialog({ year, month, employeeName, currentDate, currentCells, onConfirm, onClose }: Props) {
   const days = getDaysInMonth(year, month);
   const [selectedDay, setSelectedDay] = useState<number | null>(
     currentDate ? new Date(currentDate).getDate() : null
@@ -25,29 +26,125 @@ export default function DemisieDialog({ year, month, employeeName, currentDate, 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl p-4 w-72" onClick={e => e.stopPropagation()}>
-        <h3 className="font-semibold mb-3 text-sm">Demisie — {employeeName}</h3>
-        <p className="text-xs text-gray-600 mb-2">Selectați ziua de începere a demisiei:</p>
-        <div className="grid grid-cols-7 gap-1 mb-3">
-          {Array.from({ length: days }, (_, i) => i + 1).map(day => (
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: 'var(--surface)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.4)',
+          width: 300,
+          maxWidth: '95vw',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Demisie</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{employeeName}</p>
+            </div>
             <button
-              key={day}
-              onClick={() => setSelectedDay(selectedDay === day ? null : day)}
-              className={`rounded text-xs py-1 font-medium ${selectedDay === day ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+              onClick={onClose}
+              className="flex items-center justify-center w-7 h-7 rounded-full"
+              style={{ color: 'var(--text-tertiary)', background: 'var(--surface-2)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--border)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface-2)')}
             >
-              {day}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
             </button>
-          ))}
+          </div>
         </div>
-        <div className="flex gap-2 justify-end">
-          {currentDate && (
-            <button onClick={() => onConfirm(null)} className="text-xs text-red-500 hover:underline mr-auto">Elimină demisie</button>
+
+        {/* Body */}
+        <div className="p-4">
+          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+            Selectează ziua de începere a demisiei:
+          </p>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: days }, (_, i) => i + 1).map(day => {
+              const isSelected = selectedDay === day;
+              // Gray out days that already have a schedule value (ZL/CO/X), same as CalendarPopup
+              const existingVal = currentCells?.[day] ?? '';
+              const hasValue = existingVal !== '';
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  className="text-xs font-medium rounded-lg transition-all duration-100"
+                  style={{
+                    height: 34,
+                    background: isSelected
+                      ? 'var(--warning)'
+                      : hasValue
+                      ? 'var(--surface-2)'
+                      : 'var(--surface-2)',
+                    color: isSelected
+                      ? '#1a1a1a'   /* dark text on --warning yellow for strong contrast */
+                      : hasValue
+                      ? 'var(--text-tertiary)'
+                      : 'var(--text-primary)',
+                    border: isSelected
+                      ? 'none'
+                      : hasValue
+                      ? '1px solid var(--border-subtle)'
+                      : '1px solid var(--border)',
+                    opacity: hasValue && !isSelected ? 0.45 : 1,
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSelected) e.currentTarget.style.background = 'var(--warning-light)';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSelected) e.currentTarget.style.background = 'var(--surface-2)';
+                  }}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+          {/* Legend */}
+          {currentCells && Object.values(currentCells).some(v => v !== '') && (
+            <p className="text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
+              Zilele estompate au valori deja setate (ZL/CO/X).
+            </p>
           )}
-          <button onClick={onClose} className="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">Anulează</button>
-          <button onClick={handleConfirm} className="bg-orange-500 text-white px-3 py-1 rounded text-sm hover:bg-orange-600">Confirmă</button>
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 pb-4 flex items-center gap-2" style={{ paddingTop: 0 }}>
+          {currentDate && (
+            <button
+              onClick={() => onConfirm(null)}
+              className="text-xs font-medium mr-auto"
+              style={{ color: 'var(--danger)' }}
+            >
+              Elimină demisia
+            </button>
+          )}
+          <button onClick={onClose} className="btn-ghost text-xs px-4 py-2" style={{ minHeight: 36 }}>
+            Anulează
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="text-xs font-semibold px-4 py-2 rounded-lg transition-colors duration-150"
+            style={{ background: 'var(--warning)', color: '#1a1a1a', minHeight: 36, fontWeight: 700 }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#e6c000')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--warning)')}
+          >
+            Confirmă
+          </button>
         </div>
       </div>
     </div>
   );
 }
+
