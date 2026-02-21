@@ -1,12 +1,11 @@
 'use client';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { MONTHS_RO, getDaysInMonth } from '@/lib/schedule';
 import type { MonthPlan, Employee, Business } from '@/types';
 import MonthSelector from '@/components/MonthSelector';
 import ScheduleGrid from '@/components/ScheduleGrid';
-import ScheduleTable from '@/components/ScheduleTable';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -20,7 +19,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -99,41 +97,6 @@ export default function DashboardPage() {
     });
   }, [plan]);
 
-  async function handleExport() {
-    if (!plan || !exportRef.current) return;
-    setExporting(true);
-    const container = exportRef.current;
-    try {
-      const html2canvas = (await import('html2canvas')).default;
-      // Move into the viewport so html2canvas can find and render it
-      container.style.top = '0';
-      container.style.left = '0';
-      // Wait two animation frames for the browser to repaint before capturing
-      await new Promise(r => requestAnimationFrame(r));
-      await new Promise(r => requestAnimationFrame(r));
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-      // Restore off-screen position (React prop sets these, so set explicitly)
-      container.style.top = '-9999px';
-      container.style.left = '-9999px';
-      const link = document.createElement('a');
-      const monthName = MONTHS_RO[month - 1].toLowerCase();
-      link.download = `pontaj-${monthName}-${year}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (e) {
-      console.error(e);
-      container.style.top = '-9999px';
-      container.style.left = '-9999px';
-      alert('Eroare la export');
-    }
-    setExporting(false);
-  }
-
   const visibleEmployees = plan ? employees.filter(emp => {
     const effectiveStart = new Date(emp.startDate || emp.createdAt);
     if (!isNaN(effectiveStart.getTime())) {
@@ -151,6 +114,31 @@ export default function DashboardPage() {
     }
     return true;
   }) : employees;
+
+  async function handleExport() {
+    if (!plan) return;
+    setExporting(true);
+    try {
+      // Pure canvas-based export — no html2canvas, no DOM capture
+      const { buildSchedulePNG } = await import('@/lib/exportCanvas');
+      const dataUrl = buildSchedulePNG(
+        plan,
+        visibleEmployees,
+        selectedBusiness?.name,
+        selectedBusiness?.locationName,
+      );
+      if (!dataUrl) throw new Error('Canvas context unavailable');
+      const link = document.createElement('a');
+      const monthName = MONTHS_RO[month - 1].toLowerCase();
+      link.download = `pontaj-${monthName}-${year}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      console.error(e);
+      alert('Eroare la export');
+    }
+    setExporting(false);
+  }
 
   if (status === 'loading') {
     return (
@@ -297,25 +285,6 @@ export default function DashboardPage() {
               </div>
             )}
           </>
-        )}
-
-        {/* Hidden export target — auto-sized ScheduleTable captured by html2canvas */}
-        {plan && visibleEmployees.length > 0 && (
-          <div
-            ref={exportRef}
-            style={{
-              position: 'fixed',
-              top: '-9999px',
-              left: '-9999px',
-            }}
-          >
-            <ScheduleTable
-              plan={plan}
-              employees={visibleEmployees}
-              businessName={selectedBusiness?.name}
-              locationName={selectedBusiness?.locationName}
-            />
-          </div>
         )}
       </main>
     </div>
