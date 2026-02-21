@@ -6,9 +6,12 @@
   /* ── Dark Apple palette ────────────────────────────── */
 
   /* Backgrounds */
-  --bg: #000000;
+  --bg: #0a0a0f;
+  --bg-gradient-start: #0a0a0f;
+  --bg-gradient-end: #12121a;
   --surface: #1c1c1e;
   --surface-2: #2c2c2e;
+  --surface-elevated: #242428;
 
   /* Borders */
   --border: #38383a;
@@ -42,9 +45,81 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text-primary);
-  background: var(--bg);
+  background: linear-gradient(160deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 9999;
+  white-space: nowrap;
+  animation: toastIn 200ms ease, toastOut 200ms ease 2.5s forwards;
+}
+.toast-success { border-color: rgba(50,215,75,0.3); color: var(--success); }
+.toast-danger  { border-color: rgba(255,69,58,0.3); color: var(--danger); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(12px); }
+}
+
+/* Modal/sheet overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.4);
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: sheetIn 200ms cubic-bezier(0.2,0,0,1);
+}
+
+@keyframes sheetIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Inline form error */
+.field-error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ── Shared utility classes ─────────────────────────────────── */
@@ -142,21 +217,26 @@ body {
 /* Form input */
 .form-input {
   width: 100%;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 0.9375rem;
   color: var(--text-primary);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
   min-height: 44px;
   outline: none;
 }
+.form-input:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.10);
+}
 .form-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.22);
 }
-.form-input::placeholder { color: var(--text-tertiary); }
+.form-input::placeholder { color: var(--text-secondary); opacity: 0.55; }
 
 /* Form label */
 .form-label {
