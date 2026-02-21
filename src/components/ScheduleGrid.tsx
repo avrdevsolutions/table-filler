@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { getDaysInMonth, getDemisieCells, calcTotal, countCO, formatDateRO } from '@/lib/schedule';
 import type { MonthPlan, Employee, Cell } from '@/types';
 import CalendarPopup from './CalendarPopup';
@@ -53,11 +53,14 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
     .map(id => employees.find(e => e.id === id))
     .filter(Boolean) as Employee[];
 
-  const cellMap: Record<string, Record<number, string>> = {};
-  plan.cells.forEach((c: Cell) => {
-    if (!cellMap[c.employeeId]) cellMap[c.employeeId] = {};
-    cellMap[c.employeeId][c.day] = c.value;
-  });
+  const cellMap = useMemo(() => {
+    const map: Record<string, Record<number, string>> = {};
+    plan.cells.forEach((c: Cell) => {
+      if (!map[c.employeeId]) map[c.employeeId] = {};
+      map[c.employeeId][c.day] = c.value;
+    });
+    return map;
+  }, [plan.cells]);
 
   function getDow(day: number): string {
     const d = new Date(year, month - 1, day).getDay();

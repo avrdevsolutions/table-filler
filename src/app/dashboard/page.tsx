@@ -36,10 +36,6 @@ export default function DashboardPage() {
     } catch {}
     if (!biz) { router.push('/businesses'); return; }
     setSelectedBusiness(biz);
-    fetch(`/api/employees?businessId=${biz.id}&includeInactive=false`)
-      .then(r => r.json())
-      .then(setEmployees)
-      .catch(() => { alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.'); });
   }, [status, router]);
 
   useEffect(() => {
@@ -64,15 +60,25 @@ export default function DashboardPage() {
     if (!selectedBusiness) return;
     setLoading(true);
     setPlan(null);
-    fetch('/api/month-plans', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ month, year, businessId: selectedBusiness.id }),
-    })
-      .then(r => r.json())
-      .then(p => fetch(`/api/month-plans/${p.id}`))
-      .then(r => r.json())
-      .then(full => { setPlan(full); setLoading(false); })
+    setEmployees([]);
+    const bizId = selectedBusiness.id;
+    Promise.all([
+      fetch('/api/month-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month, year, businessId: bizId }),
+      })
+        .then(r => r.json())
+        .then(p => fetch(`/api/month-plans/${p.id}`))
+        .then(r => r.json()),
+      fetch(`/api/employees?businessId=${bizId}&includeInactive=false`)
+        .then(r => r.json()),
+    ])
+      .then(([planData, employeesData]) => {
+        setPlan(planData);
+        setEmployees(Array.isArray(employeesData) ? employeesData : []);
+        setLoading(false);
+      })
       .catch(e => { console.error(e); setLoading(false); });
   }, [month, year, selectedBusiness]);
 
@@ -82,11 +88,6 @@ export default function DashboardPage() {
     } catch {}
     setSelectedBusiness(biz);
     setShowBizPicker(false);
-    setEmployees([]);
-    fetch(`/api/employees?businessId=${biz.id}&includeInactive=false`)
-      .then(r => r.json())
-      .then(setEmployees)
-      .catch(() => { alert('Eroare la încărcarea angajaților. Vă rugăm reîncărcați pagina.'); });
   }
 
   const handleCellsChange = useCallback((employeeId: string, updates: Record<number, string>) => {

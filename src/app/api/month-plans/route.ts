@@ -3,6 +3,33 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+/** Returns employees relevant for a given (businessId, month, year). */
+async function getRelevantEmployeeIds(
+  businessId: string,
+  month: number,
+  year: number
+): Promise<string[]> {
+  const activeEmployees = await prisma.employee.findMany({
+    where: { businessId, active: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  return activeEmployees
+    .filter(e => {
+      const effectiveStart = e.startDate ? new Date(e.startDate) : new Date(e.createdAt);
+      if (isNaN(effectiveStart.getTime())) return true;
+      const startYear = effectiveStart.getFullYear();
+      const startMonth = effectiveStart.getMonth() + 1;
+      if (startYear > year || (startYear === year && startMonth > month)) return false;
+      if (!e.terminationDate) return true;
+      const term = new Date(e.terminationDate);
+      if (isNaN(term.getTime())) return true;
+      const termYear = term.getFullYear();
+      const termMonth = term.getMonth() + 1;
+      return termYear > year || (termYear === year && termMonth >= month);
+    })
+    .map(e => e.id);
+}
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -33,30 +60,34 @@ export async function POST(req: Request) {
     if (businessId) {
       const biz = await prisma.business.findFirst({ where: { id: businessId, ownerUserId: userId } });
       if (!biz) return NextResponse.json({ error: 'Firma nu există' }, { status: 404 });
-      // Check uniqueness by business
+
       const existing = await prisma.monthPlan.findFirst({ where: { businessId, month, year } });
-      if (existing) return NextResponse.json(existing);
-      // Auto-include employees active during this plan month
-      const activeEmployees = await prisma.employee.findMany({
-        where: { businessId, active: true },
-        orderBy: { createdAt: 'asc' },
-      });
-      const relevantEmployees = activeEmployees.filter(e => {
-        const effectiveStart = e.startDate ? new Date(e.startDate) : new Date(e.createdAt);
-        if (isNaN(effectiveStart.getTime())) return true; // fallback: include if date is invalid
-        const startYear = effectiveStart.getFullYear();
-        const startMonth = effectiveStart.getMonth() + 1;
-        if (startYear > year || (startYear === year && startMonth > month)) return false;
-        if (!e.terminationDate) return true;
-        const term = new Date(e.terminationDate);
-        if (isNaN(term.getTime())) return true;
-        const termYear = term.getFullYear();
-        const termMonth = term.getMonth() + 1;
-        return termYear > year || (termYear === year && termMonth >= month);
-      });
-      const employeeIds = JSON.stringify(relevantEmployees.map(e => e.id));
+      if (existing) {
+        // Refresh employeeIds: add any employees that joined after plan creation
+        const relevantIds = await getRelevantEmployeeIds(businessId, month, year);
+        const existingIds: string[] = JSON.parse(existing.employeeIds || '[]');
+        const newIds = relevantIds.filter(id => !existingIds.includes(id));
+        if (newIds.length > 0) {
+          const updated = await prisma.monthPlan.update({
+            where: { id: existing.id },
+            data: { employeeIds: JSON.stringify([...existingIds, ...newIds]) },
+          });
+          return NextResponse.json(updated);
+        }
+        return NextResponse.json(existing);
+      }
+
+      // Create new plan with all relevant employees
+      const relevantIds = await getRelevantEmployeeIds(businessId, month, year);
       const plan = await prisma.monthPlan.create({
-        data: { month, year, userId, businessId, employeeIds, locationName: biz.locationName },
+        data: {
+          month,
+          year,
+          userId,
+          businessId,
+          employeeIds: JSON.stringify(relevantIds),
+          locationName: biz.locationName,
+        },
       });
       return NextResponse.json(plan);
     }
