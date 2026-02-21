@@ -162,7 +162,8 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
               const cells = cellMap[emp.id] ?? {};
               const demisie = emp.terminationDate ? getDemisieCells(emp.terminationDate, year, month) : {};
               const total = calcTotal(cells);
-              const rowBg = idx % 2 === 0 ? '#1c1c1e' : '#2a2a2e';
+              // const rowBg = idx % 2 === 0 ? '#1c1c1e' : '#2a2a2e';
+              const rowBg = '#1c1c1e';
 
               return (
                 <tr key={emp.id} style={{ background: rowBg }}>
