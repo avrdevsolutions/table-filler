@@ -30,20 +30,40 @@ function Toast({ message, type, onDone }: { message: string; type: 'success' | '
 /* ── Overflow "..." menu ───────────────────────────── */
 function OverflowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        btnRef.current && !btnRef.current.contains(e.target as Node) &&
+        menuRef.current && !menuRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  function handleToggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(v => !v);
+  }
+
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <>
       <button
-        onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+        ref={btnRef}
+        onClick={handleToggle}
         className="flex items-center justify-center rounded-xl transition-colors duration-150"
         style={{ width: 36, height: 36, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
         aria-label="Opțiuni"
@@ -54,13 +74,19 @@ function OverflowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () =
           <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
         </svg>
       </button>
-      {open && (
+      {open && menuPos && (
         <div
+          ref={menuRef}
           className="rounded-xl overflow-hidden"
           style={{
-            position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 30,
-            background: 'var(--surface-elevated)', border: '1px solid var(--border)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 140,
+            position: 'fixed',
+            top: menuPos.top,
+            right: menuPos.right,
+            zIndex: 9000,
+            background: 'var(--surface-elevated)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            minWidth: 140,
           }}
         >
           <button
@@ -92,7 +118,7 @@ function OverflowMenu({ onEdit, onDelete }: { onEdit: () => void; onDelete: () =
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
