@@ -139,6 +139,7 @@ function EmployeeDetailsModal({
   onSetDemisie,
   onRemoveDemisie,
   onEmployeeUpdate,
+  onDeleteEmployee,
 }: {
   employee: Employee;
   bizId: string;
@@ -146,6 +147,7 @@ function EmployeeDetailsModal({
   onSetDemisie: (bizId: string, empId: string, date: string) => Promise<void>;
   onRemoveDemisie: (bizId: string, empId: string) => Promise<void>;
   onEmployeeUpdate: (bizId: string, emp: Employee) => void;
+  onDeleteEmployee: (bizId: string, empId: string) => Promise<boolean>;
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -160,6 +162,11 @@ function EmployeeDetailsModal({
   const [editNameError, setEditNameError] = useState('');
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Permanent delete confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const isActive = employee.active && !employee.terminationDate;
 
@@ -208,6 +215,14 @@ function EmployeeDetailsModal({
     await onRemoveDemisie(bizId, employee.id);
     setSaving(false);
     onClose();
+  }
+
+  async function handlePermanentDelete() {
+    if (deleteConfirmText !== 'STERGE') return;
+    setDeleting(true);
+    const ok = await onDeleteEmployee(bizId, employee.id);
+    setDeleting(false);
+    if (ok) onClose();
   }
 
   return (
@@ -340,7 +355,7 @@ function EmployeeDetailsModal({
         )}
 
         {/* Demisie action */}
-        <div className="px-6 py-4">
+        <div className="px-6 py-4" style={{ borderBottom: showDeleteConfirm ? '1px solid var(--border-subtle)' : undefined }}>
           <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-tertiary)' }}>
             Acțiuni
           </p>
@@ -420,6 +435,65 @@ function EmployeeDetailsModal({
                   {saving ? 'Se salvează…' : 'Confirmă demisia'}
                 </button>
                 <button onClick={() => { setShowDatePicker(false); setDemisieDate(''); setDateError(''); }} className="btn-ghost">
+                  Anulează
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Permanent delete section */}
+        <div className="px-6 py-4">
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => { setShowDeleteConfirm(true); setDeleteConfirmText(''); }}
+              className="flex items-center gap-2 text-xs font-medium transition-colors duration-150"
+              style={{ color: 'var(--text-tertiary)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--danger)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Șterge definitiv
+            </button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="rounded-xl p-3" style={{ background: 'var(--danger-light)', border: '1px solid var(--danger)' }}>
+                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--danger)' }}>
+                  Ștergi angajatul definitiv?
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Această acțiune va șterge angajatul și toate datele lui (pontaj, CO/CM/X, istoric). Nu poate fi anulată.
+                </p>
+              </div>
+              <div>
+                <label className="form-label">
+                  Tastează <strong>STERGE</strong> pentru a confirma
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  placeholder="STERGE"
+                  className="form-input"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePermanentDelete}
+                  disabled={deleteConfirmText !== 'STERGE' || deleting}
+                  className="btn-danger flex-1 justify-center"
+                  style={{ opacity: deleteConfirmText !== 'STERGE' ? 0.45 : 1 }}
+                >
+                  {deleting ? 'Se șterge…' : 'Șterge definitiv'}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                  className="btn-ghost"
+                >
                   Anulează
                 </button>
               </div>
@@ -713,6 +787,21 @@ export default function BusinessesPage() {
     showToast(`${updated.fullName} a fost actualizat.`);
   }
 
+  async function handleDeleteEmployee(bizId: string, empId: string): Promise<boolean> {
+    const res = await fetch(`/api/businesses/${bizId}/employees/${empId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      showToast('Eroare la ștergerea angajatului. Încearcă din nou.', 'danger');
+      return false;
+    }
+    setBizEmployees(prev => ({
+      ...prev,
+      [bizId]: (prev[bizId] ?? []).filter(e => e.id !== empId),
+    }));
+    setDetailsEmployee(null);
+    showToast('Angajat șters definitiv.');
+    return true;
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -759,6 +848,7 @@ export default function BusinessesPage() {
           onSetDemisie={handleSetDemisie}
           onRemoveDemisie={handleRemoveDemisie}
           onEmployeeUpdate={handleEmployeeUpdate}
+          onDeleteEmployee={handleDeleteEmployee}
         />
       )}
 
