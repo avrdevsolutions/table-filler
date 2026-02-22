@@ -1,17 +1,35 @@
 'use client';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isValidEmail } from '@/lib/validation';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+
+  /** Resolve safe redirect destination: only allow same-origin relative paths. */
+  function resolveRedirect(): string {
+    if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+      return returnTo;
+    }
+    return '/businesses';
+  }
 
   function validate(): boolean {
     const errs: { email?: string; password?: string } = {};
@@ -29,7 +47,7 @@ export default function LoginPage() {
     setError('');
     const res = await signIn('credentials', { email, password, redirect: false });
     setLoading(false);
-    if (res?.ok) router.push('/businesses');
+    if (res?.ok) router.push(resolveRedirect());
     else setError('Email sau parolă incorectă.');
   }
 

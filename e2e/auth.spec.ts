@@ -96,4 +96,32 @@ test.describe('Auth — Guarded routes', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
+
+  test('unauthenticated /businesses redirects with returnTo param', async ({ page }) => {
+    await page.goto('/businesses');
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
+    expect(page.url()).toContain('returnTo=%2Fbusinesses');
+  });
+
+  test('authenticated user visiting /login → /businesses', async ({ page }) => {
+    await registerAndLogin(page, 'guard-login');
+    await page.goto('/login');
+    await expect(page).toHaveURL(/\/businesses/, { timeout: 10_000 });
+  });
+
+  test('authenticated user visiting /register → /businesses', async ({ page }) => {
+    await registerAndLogin(page, 'guard-register');
+    await page.goto('/register');
+    await expect(page).toHaveURL(/\/businesses/, { timeout: 10_000 });
+  });
+
+  test('returnTo: login redirects to originally requested page', async ({ page }) => {
+    const creds = await registerUser(page, uniqueCredentials('returnTo'));
+    // Navigate to login with a returnTo parameter
+    await page.goto('/login?returnTo=/businesses');
+    await page.getByLabel('Email').fill(creds.email);
+    await page.getByLabel('Parolă').fill(creds.password);
+    await page.getByRole('button', { name: 'Intră în cont' }).click();
+    await expect(page).toHaveURL(/\/businesses/, { timeout: 15_000 });
+  });
 });
