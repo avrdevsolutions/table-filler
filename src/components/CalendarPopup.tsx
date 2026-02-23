@@ -20,7 +20,9 @@ const modeConfig = {
   X:  { label: 'Liber / Absență', color: '#c2410c', bg: '#fff0eb', selectedBg: '#ff6b35' },
 };
 
-const ZL_PRESETS = ['8', '12', '24'];
+const ZL_PRESETS = ['8', '12', '16', '24'];
+
+const CONTEXT_MENU_HEIGHT = 260;
 
 const DOW_LABELS = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
 
@@ -30,44 +32,41 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
   const blanks = firstDow === 0 ? 6 : firstDow - 1;
   const cfg = modeConfig[mode];
 
-  const [paintValue, setPaintValue] = useState<string>('24');
   const [showCustom, setShowCustom] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [overrideDay, setOverrideDay] = useState<number | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{ day: number; x: number; y: number } | null>(null);
-  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-
-  const isCustomPaint = !ZL_PRESETS.includes(paintValue);
-  const customPaintLabel = isCustomPaint ? `Altul (${paintValue}h)` : 'Altul…';
 
   function getCellState(day: number): { selected: boolean; otherLetter: boolean; diffNumeric: boolean; demisie: boolean; val: string } {
     const val = currentCells[day] ?? '';
     if (demisieDays[day]) return { selected: false, otherLetter: false, diffNumeric: false, demisie: true, val };
     if (mode === 'ZL') {
-      const selected = val === paintValue;
-      const diffNumeric = !selected && isWorkHours(val);
-      const otherLetter = val !== '' && !isWorkHours(val); // CO / CM / X
-      return { selected, otherLetter, diffNumeric, demisie: false, val };
+      const hasHours = isWorkHours(val);
+      const otherLetter = val !== '' && !hasHours; // CO / CM / X
+      return { selected: hasHours, otherLetter, diffNumeric: false, demisie: false, val };
     }
     if (val === mode) return { selected: true, otherLetter: false, diffNumeric: false, demisie: false, val };
     if (val !== '') return { selected: false, otherLetter: true, diffNumeric: false, demisie: false, val };
     return { selected: false, otherLetter: false, diffNumeric: false, demisie: false, val };
   }
 
-  function handleDayClick(day: number) {
-    onToggle(day, mode === 'ZL' ? paintValue : mode);
+  function handleDayClick(day: number, e: React.MouseEvent) {
+    if (mode === 'ZL') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX || rect.right;
+      const y = e.clientY || rect.bottom;
+      openContextMenu(day, x, y);
+    } else {
+      onToggle(day, mode);
+    }
   }
 
   function handleCustomConfirm() {
     const n = parseInt(customInput, 10);
-    if (n >= 1 && n <= 48) {
-      if (overrideDay !== null) {
-        onToggle(overrideDay, String(n));
-        setOverrideDay(null);
-      } else {
-        setPaintValue(String(n));
-      }
+    if (n >= 1 && n <= 48 && overrideDay !== null) {
+      onToggle(overrideDay, String(n));
+      setOverrideDay(null);
     }
     setShowCustom(false);
     setCustomInput('');
@@ -75,24 +74,6 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
 
   function openContextMenu(day: number, x: number, y: number) {
     setContextMenu({ day, x, y });
-  }
-
-  function handleContextMenuRight(day: number, e: React.MouseEvent) {
-    e.preventDefault();
-    openContextMenu(day, e.clientX, e.clientY);
-  }
-
-  function handleTouchStart(day: number, e: React.TouchEvent) {
-    const touch = e.touches[0];
-    const timer = setTimeout(() => {
-      openContextMenu(day, touch.clientX, touch.clientY);
-    }, 500);
-    setLongPressTimer(timer);
-  }
-
-  function handleTouchEnd() {
-    if (longPressTimer) clearTimeout(longPressTimer);
-    setLongPressTimer(null);
   }
 
   function closeContextMenu() {
@@ -140,49 +121,6 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
               </button>
             </div>
 
-            {/* ZL hours paint-value selector */}
-            {mode === 'ZL' && (
-              <div className="flex gap-1.5 mt-3">
-                {ZL_PRESETS.map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setPaintValue(v)}
-                    style={{
-                      flex: 1,
-                      padding: '5px 2px',
-                      borderRadius: 8,
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: paintValue === v ? '#0071e3' : 'var(--surface-2)',
-                      color: paintValue === v ? '#fff' : 'var(--text-secondary)',
-                      transition: 'all 0.1s',
-                    }}
-                  >
-                    {v}h
-                  </button>
-                ))}
-                <button
-                  onClick={() => { setCustomInput(isCustomPaint ? paintValue : ''); setOverrideDay(null); setShowCustom(true); }}
-                  style={{
-                    flex: 1.6,
-                    padding: '5px 4px',
-                    borderRadius: 8,
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: isCustomPaint ? '#0071e3' : 'var(--surface-2)',
-                    color: isCustomPaint ? '#fff' : 'var(--text-secondary)',
-                    transition: 'all 0.1s',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {customPaintLabel}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Calendar grid */}
@@ -220,10 +158,7 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
                 return (
                   <button
                     key={day}
-                    onClick={() => !disabled && handleDayClick(day)}
-                    onContextMenu={e => !disabled && mode === 'ZL' && handleContextMenuRight(day, e)}
-                    onTouchStart={!disabled && mode === 'ZL' ? (e) => handleTouchStart(day, e) : undefined}
-                    onTouchEnd={handleTouchEnd}
+                    onClick={e => !disabled && handleDayClick(day, e)}
                     disabled={disabled}
                     className="rounded-lg transition-all duration-100"
                     style={{
@@ -246,18 +181,16 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
                     }}
                     onMouseLeave={e => {
                       if (!disabled && !selected) {
-                        e.currentTarget.style.background = diffNumeric
-                          ? 'rgba(10,132,255,0.15)'
-                          : otherLetter
+                        e.currentTarget.style.background = otherLetter
                           ? 'var(--surface-2)'
                           : 'transparent';
                       }
                     }}
                   >
-                    {/* Show day number; if it has a different numeric value in ZL mode, show the hours too */}
+                    {/* Show day number; if it has a numeric value in ZL mode, show the hours too */}
                     <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{day}</span>
-                    {mode === 'ZL' && (diffNumeric || (selected && val !== '')) && (
-                      <span style={{ fontSize: '0.55rem', fontWeight: 700, color: selected ? 'rgba(255,255,255,0.85)' : 'var(--accent)', lineHeight: 1 }}>
+                    {mode === 'ZL' && selected && val !== '' && (
+                      <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)', lineHeight: 1 }}>
                         {val}h
                       </span>
                     )}
@@ -300,7 +233,7 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
           className="fixed rounded-xl overflow-hidden"
           style={{
             zIndex: 60,
-            top: Math.min(contextMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 600) - 180),
+            top: Math.min(contextMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 600) - CONTEXT_MENU_HEIGHT),
             left: Math.min(contextMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 170),
             background: 'var(--surface)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
