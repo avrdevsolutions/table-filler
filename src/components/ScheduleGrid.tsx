@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback, useMemo } from 'react';
-import { getDaysInMonth, getDemisieCells, calcTotal, countCO, countCM, formatDateRO } from '@/lib/schedule';
+import { getDaysInMonth, getDemisieCells, calcTotal, countCO, countCM, formatDateRO, isWorkHours } from '@/lib/schedule';
 import type { MonthPlan, Employee, Cell } from '@/types';
 import CalendarPopup from './CalendarPopup';
 import DemisieDialog from './DemisieDialog';
@@ -18,7 +18,6 @@ interface ActivePopup { employeeId: string; mode: PopupMode; }
 interface ActiveDemisie { employeeId: string; }
 
 const cellValueStyle: Record<string, React.CSSProperties> = {
-  '24': { color: 'var(--accent)', fontWeight: 700 },
   'CO': { color: 'var(--success)', fontWeight: 700 },
   'CM': { color: '#f59e0b', fontWeight: 700 },
   'X':  { color: 'var(--danger)', fontWeight: 700 },
@@ -29,8 +28,9 @@ const cellValueStyle: Record<string, React.CSSProperties> = {
   'S':  { color: '#6e6e73', fontWeight: 600 },
 };
 
+const ZL_STYLE: React.CSSProperties = { color: 'var(--accent)', fontWeight: 700 };
+
 const cellBg: Record<string, string> = {
-  '24': 'rgba(10,132,255,0.11)',
   'CO': 'rgba(50,215,75,0.11)',
   'CM': 'rgba(245,158,11,0.11)',
   'X':  'rgba(255,69,58,0.11)',
@@ -40,6 +40,8 @@ const cellBg: Record<string, string> = {
   'I':  'rgba(110,110,115,0.07)',
   'S':  'rgba(110,110,115,0.07)',
 };
+
+const ZL_BG = 'rgba(10,132,255,0.11)';
 
 const WEEKEND_BG = 'rgba(255,214,10,0.04)';
 
@@ -73,13 +75,15 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
     return d === 0 || d === 6;
   }
 
-  const handleToggle = useCallback((employeeId: string, mode: PopupMode, day: number) => {
+  const handleToggle = useCallback((employeeId: string, mode: PopupMode, day: number, value: string) => {
     const cells = { ...(cellMap[employeeId] ?? {}) };
     const current = cells[day] ?? '';
-    if (mode === 'ZL') cells[day] = current === '24' ? '' : '24';
-    else if (mode === 'CO') cells[day] = current === 'CO' ? '' : 'CO';
-    else if (mode === 'CM') cells[day] = current === 'CM' ? '' : 'CM';
-    else if (mode === 'X') cells[day] = current === 'X' ? '' : 'X';
+    if (mode === 'ZL') {
+      // empty value = explicit delete; otherwise toggle (same value clears, different replaces)
+      cells[day] = value === '' ? '' : current === value ? '' : value;
+    } else {
+      cells[day] = current === value ? '' : value;
+    }
     onCellsChange(employeeId, { [day]: cells[day] });
   }, [cellMap, onCellsChange]);
 
@@ -255,8 +259,8 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
                   {/* Day cells */}
                   {daysArr.map(d => {
                     const val = demisie[d] || cells[d] || '';
-                    const style = cellValueStyle[val] ?? {};
-                    const bg = cellBg[val] ?? (isWeekend(d) ? WEEKEND_BG : 'transparent');
+                    const style = cellValueStyle[val] ?? (isWorkHours(val) ? ZL_STYLE : {});
+                    const bg = cellBg[val] ?? (isWorkHours(val) ? ZL_BG : isWeekend(d) ? WEEKEND_BG : 'transparent');
                     return (
                       <td key={d} style={{
                         borderBottom: '1px solid var(--border)',
@@ -372,7 +376,7 @@ export default function ScheduleGrid({ plan, employees, onCellsChange, onEmploye
           year={year} month={month} mode={popup.mode}
           currentCells={cellMap[popup.employeeId] ?? {}}
           demisieDays={popupEmployee.terminationDate ? getDemisieCells(popupEmployee.terminationDate, year, month) : {}}
-          onToggle={day => handleToggle(popup.employeeId, popup.mode, day)}
+          onToggle={(day, value) => handleToggle(popup.employeeId, popup.mode, day, value)}
           onClose={() => setPopup(null)}
           employeeName={popupEmployee.fullName}
         />

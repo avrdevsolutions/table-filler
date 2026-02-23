@@ -40,4 +40,5 @@ export interface MonthPlan {
   updatedAt: string;
 }
 
-export type CellValue = '' | '24' | 'CO' | 'CM' | 'X' | 'D' | 'E' | 'M' | 'I' | 'S';
+// Known cell values; custom numeric hour strings (e.g. '8', '10') are also valid.
+export type CellValue = string;

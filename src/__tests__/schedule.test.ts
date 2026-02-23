@@ -30,10 +30,13 @@ describe('getDemisieCells', () => {
 });
 
 describe('calcTotal', () => {
-  it('sums 24*count', () => {
+  it('sums values of 24 cells', () => {
     expect(calcTotal({ 1: '24', 2: '24', 3: '24' })).toBe(72);
   });
-  it('ignores non-24 values', () => {
+  it('sums variable numeric values', () => {
+    expect(calcTotal({ 1: '24', 2: '12', 3: '8' })).toBe(44);
+  });
+  it('ignores non-numeric values', () => {
     expect(calcTotal({ 1: 'CO', 2: 'X', 3: '24' })).toBe(24);
   });
   it('returns 0 for empty', () => {
