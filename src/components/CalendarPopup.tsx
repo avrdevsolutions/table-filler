@@ -199,9 +199,7 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
               {Array.from({ length: blanks }).map((_, i) => <div key={`b${i}`} />)}
               {Array.from({ length: days }, (_, i) => i + 1).map(day => {
                 const { selected, otherLetter, diffNumeric, demisie, val } = getCellState(day);
-                // In ZL mode: only disable demisie days (CO/CM/X/different numeric are replaceable)
-                // In other modes: disable demisie AND other-mode cells
-                const disabled = mode === 'ZL' ? demisie : demisie || otherLetter;
+                const disabled = demisie || otherLetter;
 
                 const bgColor = demisie
                   ? 'var(--border-subtle)'
@@ -233,7 +231,7 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
                       background: bgColor,
                       color: textColor,
                       cursor: disabled ? 'not-allowed' : 'pointer',
-                      opacity: demisie || (mode !== 'ZL' && otherLetter) ? 0.5 : 1,
+                      opacity: demisie || otherLetter ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
