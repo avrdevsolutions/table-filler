@@ -36,8 +36,14 @@ export function getDemisieCells(
   return result;
 }
 
+export function isWorkHours(val: string): boolean {
+  if (val === '') return false;
+  const n = Number(val);
+  return Number.isInteger(n) && n > 0;
+}
+
 export function calcTotal(cells: Record<number, string>): number {
-  return Object.values(cells).filter(v => v === '24').length * 24;
+  return Object.values(cells).reduce((sum, v) => sum + (isWorkHours(v) ? Number(v) : 0), 0);
 }
 
 export function countCO(cells: Record<number, string>): number {
