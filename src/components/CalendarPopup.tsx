@@ -191,7 +191,7 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
                     <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{day}</span>
                     {mode === 'ZL' && selected && val !== '' && (
                       <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'rgba(255,255,255,0.85)', lineHeight: 1 }}>
-                        {val}h
+                        {val === 'Z' || val === 'N' ? val : `${val}h`}
                       </span>
                     )}
                     {mode === 'ZL' && otherLetter && (
@@ -257,6 +257,21 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               {v}h
+            </button>
+          ))}
+          {(['Z', 'N'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => { onToggle(contextMenu.day, v); closeContextMenu(); }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '8px 12px', background: 'transparent', border: 'none',
+                color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              {v}
             </button>
           ))}
           <button

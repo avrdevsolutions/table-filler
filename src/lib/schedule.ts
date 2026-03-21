@@ -38,12 +38,17 @@ export function getDemisieCells(
 
 export function isWorkHours(val: string): boolean {
   if (val === '') return false;
+  if (val === 'Z' || val === 'N') return true;
   const n = Number(val);
   return Number.isInteger(n) && n > 0;
 }
 
 export function calcTotal(cells: Record<number, string>): number {
-  return Object.values(cells).reduce((sum, v) => sum + (isWorkHours(v) ? Number(v) : 0), 0);
+  return Object.values(cells).reduce((sum, v) => {
+    if (!isWorkHours(v)) return sum;
+    if (v === 'Z' || v === 'N') return sum + 12;
+    return sum + Number(v);
+  }, 0);
 }
 
 export function countCO(cells: Record<number, string>): number {
