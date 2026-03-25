@@ -35,22 +35,19 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
   const [overrideDay, setOverrideDay] = useState<number | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{ day: number; x: number; y: number } | null>(null);
-  const [contextMenuTop, setContextMenuTop] = useState<number | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    if (!contextMenu || !contextMenuRef.current) {
-      setContextMenuTop(null);
-      return;
-    }
     const el = contextMenuRef.current;
+    if (!el || !contextMenu) return;
     const height = el.offsetHeight;
     const winHeight = window.innerHeight;
     const spaceBelow = winHeight - contextMenu.y;
     const top = spaceBelow < height
       ? Math.max(0, contextMenu.y - height)
       : contextMenu.y;
-    setContextMenuTop(top);
+    el.style.top = `${top}px`;
+    el.style.visibility = 'visible';
   }, [contextMenu]);
 
   function getCellState(day: number): { selected: boolean; otherLetter: boolean; diffNumeric: boolean; demisie: boolean; val: string } {
@@ -249,8 +246,8 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
           className="fixed rounded-xl"
           style={{
             zIndex: 60,
-            visibility: contextMenuTop === null ? 'hidden' : 'visible',
-            top: contextMenuTop ?? contextMenu.y,
+            visibility: 'hidden',
+            top: contextMenu.y,
             left: Math.min(contextMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 170),
             background: 'var(--surface)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
