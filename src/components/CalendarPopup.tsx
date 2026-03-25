@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { getDaysInMonth, isWorkHours } from '@/lib/schedule';
 
 interface Props {
@@ -22,8 +22,6 @@ const modeConfig = {
 
 const ZL_PRESETS = ['8', '12', '16', '24'];
 
-const CONTEXT_MENU_HEIGHT = 260;
-
 const DOW_LABELS = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
 
 export default function CalendarPopup({ year, month, mode, currentCells, demisieDays, onToggle, onClose, employeeName }: Props) {
@@ -37,6 +35,20 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
   const [overrideDay, setOverrideDay] = useState<number | null>(null);
 
   const [contextMenu, setContextMenu] = useState<{ day: number; x: number; y: number } | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = contextMenuRef.current;
+    if (!el || !contextMenu) return;
+    const height = el.offsetHeight;
+    const winHeight = window.innerHeight;
+    const spaceBelow = winHeight - contextMenu.y;
+    const top = spaceBelow < height
+      ? Math.max(0, contextMenu.y - height)
+      : contextMenu.y;
+    el.style.top = `${top}px`;
+    el.style.visibility = 'visible';
+  }, [contextMenu]);
 
   function getCellState(day: number): { selected: boolean; otherLetter: boolean; diffNumeric: boolean; demisie: boolean; val: string } {
     const val = currentCells[day] ?? '';
@@ -230,14 +242,18 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
       {/* Context menu card */}
       {contextMenu && (
         <div
-          className="fixed rounded-xl overflow-hidden"
+          ref={contextMenuRef}
+          className="fixed rounded-xl"
           style={{
             zIndex: 60,
-            top: Math.min(contextMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 600) - CONTEXT_MENU_HEIGHT),
+            visibility: 'hidden',
+            top: contextMenu.y,
             left: Math.min(contextMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 170),
             background: 'var(--surface)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             minWidth: 160,
+            maxHeight: 'calc(100vh - 16px)',
+            overflowY: 'auto',
           }}
           onClick={e => e.stopPropagation()}
         >
