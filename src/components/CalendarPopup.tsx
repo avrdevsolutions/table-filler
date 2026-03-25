@@ -22,7 +22,7 @@ const modeConfig = {
 
 const ZL_PRESETS = ['8', '12', '16', '24'];
 
-const CONTEXT_MENU_HEIGHT = 260;
+const CONTEXT_MENU_HEIGHT = 320;
 
 const DOW_LABELS = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
 
@@ -233,7 +233,13 @@ export default function CalendarPopup({ year, month, mode, currentCells, demisie
           className="fixed rounded-xl overflow-hidden"
           style={{
             zIndex: 60,
-            top: Math.min(contextMenu.y, (typeof window !== 'undefined' ? window.innerHeight : 600) - CONTEXT_MENU_HEIGHT),
+            top: (() => {
+              const winHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
+              const spaceBelow = winHeight - contextMenu.y;
+              return spaceBelow < CONTEXT_MENU_HEIGHT
+                ? Math.max(0, contextMenu.y - CONTEXT_MENU_HEIGHT)
+                : contextMenu.y;
+            })(),
             left: Math.min(contextMenu.x, (typeof window !== 'undefined' ? window.innerWidth : 400) - 170),
             background: 'var(--surface)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
